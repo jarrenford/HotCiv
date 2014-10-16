@@ -19,15 +19,31 @@ class Game:
         self._board = [(None, None)]*256
         self._board[17] = (City(RED), None)
         self._board[65] = (City(BLUE), None)
+        self._board[16] = (Tile(OCEANS), None)
     
     def getTileAt(self, pos):
-        pass
+        obj = self._board[self._posToIndex(pos)][0]
+        
+        if obj.getTileType() in [OCEANS, MOUNTAINS, PLAINS, HILLS]:
+            return obj
+        else:
+            return -1
     
     def getUnitAt(self, pos):
-        pass
+        obj = self._board[self._posToIndex(pos)][0]
+        
+        if obj.getTileType() in [ARCHER, LEGION, SETTLER]:
+            return obj
+        else:
+            return -1
     
     def getCityAt(self, pos):
-        return self._board[self._posToIndex(pos)][0]
+        obj = self._board[self._posToIndex(pos)][0]
+        
+        if obj.getTileType() == CITY:
+            return obj
+        else:
+            return -1
     
     def getPlayerInTurn(self):
         return self._turn
@@ -85,6 +101,7 @@ class Tile:
 
     def __init__(self, tileType):
         self._production = None
+        self._tileType = tileType
 
     def isPassable(self):
         pass
@@ -99,7 +116,7 @@ class Tile:
         pass
 
     def getTileType(self):
-        pass
+        return self._tileType
 
     def getProduction(self):
         return self._production
