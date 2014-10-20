@@ -12,3 +12,7 @@ HILLS = 'hills'
 CITY = 'city'
 FOOD = 'food'
 PRODUCTION = 'production'
+
+ARCHER = 'archer'
+LEGION = 'legion'
+SETTLER = 'settler'
