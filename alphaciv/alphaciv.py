@@ -15,41 +15,42 @@ class Game:
         self._turnCount = 0
         self._turn = RED
         self._age = 4000
+        self._hasMoved = []
         
-        self._board = [[Tile(PLAINS), None]]*256
-        self._board[17] = [City(RED), None]
-        self._board[65] = [City(BLUE), None]
-        self._board[16] = [Tile(OCEANS), None]
-        self._board[1] = [Tile(HILLS), None]
-        self._board[34] = [Tile(MOUNTAINS), None]
+        self._board = [[Tile(PLAINS), None, None]]*256
+        self._board[17] = [Tile(PLAINS), None, City(RED)]
+        self._board[65] = [Tile(PLAINS), None, City(BLUE)]
+        self._board[16] = [Tile(OCEANS), None, None]
+        self._board[1] = [Tile(HILLS), None, None]
+        self._board[34] = [Tile(MOUNTAINS), None, None]
         
-        self._board[32] = [Tile(PLAINS), Unit(RED,ARCHER)]
-        self._board[50] = [Tile(PLAINS), Unit(BLUE,LEGION)]
-        self._board[67] = [Tile(PLAINS), Unit(RED,SETTLER)]
+        self._board[32] = [Tile(PLAINS), Unit(RED,ARCHER), None]
+        self._board[50] = [Tile(PLAINS), Unit(BLUE,LEGION), None]
+        self._board[67] = [Tile(PLAINS), Unit(RED,SETTLER), None]
     
     def getTileAt(self, pos):
-        obj = self._board[self._posToIndex(pos)][0]
+        tile = self._board[self._posToIndex(pos)][0]
         
-        if obj.getTileType() in [OCEANS, MOUNTAINS, PLAINS, HILLS]:
-            return obj
+        if tile.getTileType() in [OCEANS, MOUNTAINS, PLAINS, HILLS]:
+            return tile
         else:
             return -1
     
     def getUnitAt(self, pos):
         unit = self._board[self._posToIndex(pos)][1]
 
-        if unit == None:
+        if unit == None or self.getCityAt(pos) != -1:
             return -1
 
         return unit
     
     def getCityAt(self, pos):
-        obj = self._board[self._posToIndex(pos)][0]
+        city = self._board[self._posToIndex(pos)][2]
         
-        if obj.getTileType() == CITY:
-            return obj
-        else:
+        if city == None:
             return -1
+        
+        return city
     
     def getPlayerInTurn(self):
         return self._turn
@@ -65,10 +66,11 @@ class Game:
         
         if not self._isMoveValid(posFrom, posTo):
             return False
-        
+
         self._board[self._posToIndex(posFrom)][1] = None
         self._board[self._posToIndex(posTo)][1] = unit
 
+        self._hasMoved.append(posTo)
     
     def endOfTurn(self):
         self._turnCount += 1
@@ -78,19 +80,34 @@ class Game:
         else:
             self._turn = BLUE
 
-        # Add endOfRound() function in future version
-        self._age -= 50
+        self._hasMoved = []
 
-    def changeCityWorkforceAt(self, pos, balance):
+    def endOfRound(self):
+        self._age -= 100
+
+        for square in self._board:
+            city = square[2]
+            
+            if city != None:
+                city.nextRoundPrep()
+        
+    def changeCityWorkforceAt(self, pos, focus):
         pass
 
-    def changeCityProductionAt(self, pos, produce):
-        pass
+    def changeCityProductionUnitAt(self, pos, unit):
+        city = self.getCityAt(pos)
+        city.changeProductionUnit(unit)
 
     def _isMoveValid(self, posFrom, posTo):
         unit = self.getUnitAt(posFrom)
         mCount = unit.getMoveCount()
         toTile = self.getTileAt(posTo)
+
+        if self.getCityAt(posTo) != -1:
+            return False
+        
+        if posFrom in self._hasMoved:
+            return False
 
         if unit.getOwner() != self.getPlayerInTurn():
             return False
@@ -99,7 +116,8 @@ class Game:
             return False
                
         if self.getUnitAt(posTo) != -1:
-            return False
+            if self.getUnitAt(posTo).getOwner() == self.getPlayerInTurn():
+                return False
 
         if any([abs(posFrom[0]-posTo[0]) > mCount,
                 abs(posFrom[1]-posTo[1] > mCount)]):
@@ -138,23 +156,24 @@ class Unit:
 class Tile:
 
     def __init__(self, tileType):
-        self._production = None
         self._tileType = tileType
-
+        self._food = {PLAINS:3, OCEANS:1, HILLS:0,
+                      MOUNTAINS:0, FORESTS:0}[tileType]
+    
     def isPassable(self):
-        if self._tileType in [MOUNTAINS, OCEANS, CITY]:
+        if self._tileType in [MOUNTAINS, OCEANS]:
             return False
         
         return True
 
     def isBuildable(self):
-        # Cannot build on this space, i.e. mountains, cities, and oceans.
-        # Pretty much identical to isPassable, except prohibits building on
-        # existing cities
-        pass
+        if self._tile == PLAINS:
+            return True
+        
+        return False
 
     def getFood(self):
-        pass
+        return self._food
 
     def getTileType(self):
         return self._tileType
@@ -163,20 +182,49 @@ class Tile:
         return self._production
 
 # --------------------------------------------------------
-class City(Tile):
+class City():
 
     def __init__(self, owner):
-        self._production = None
-        self._tileType = CITY
+        self._size = 1
         self._owner = owner
-
+        self._workforceFocus = None
+        self._food = 0
+        self._productionUnit = None
+        self._productionPoints = 0
+        
     def getSize(self):
-        pass
+        return self._size
 
     def getOwner(self):
         return self._owner
 
     def getWorkforceFocus(self):
-        pass
+        return self._workforceFocus
+
+    def changeWorkforceFocus(self, focus):
+        if focus in [PRODUCTION, FOOD]:
+            self._workforceFocus = focus
+        else:
+            return -1
+
+    def getProductionPoints(self):
+        return self._productionPoints
+    
+    def getProductionUnit(self):
+        return self._productionUnit
+
+    def changeProductionUnit(self, unit):
+        if unit in [ARCHER, LEGION, SETTLER]:
+            self._productionUnit = unit
+        else:
+            return -1
+
+    def getFood(self):
+        return self._food
+    
+    def nextRoundPrep(self):
+        if self._workforceFocus == PRODUCTION:
+            self._productionPoints += 6
+        
 
 # --------------------------------------------------------

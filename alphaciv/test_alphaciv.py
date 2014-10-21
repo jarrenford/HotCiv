@@ -58,18 +58,16 @@ class testAlphaCiv(unittest.TestCase):
     def test_GameAges100YearsEachRound(self):
         g = Game()
         
-        g.endOfTurn()
-        g.endOfTurn()
+        g.endOfRound()
         self.assertEqual(g.getAge(), 3900)
-        g.endOfTurn()
-        g.endOfTurn()
+        g.endOfRound()
         self.assertEqual(g.getAge(), 3800)
 
     def test_RedWinsIn3000BC(self):
         g = Game()
         
-        for i in range(20):
-            g.endOfTurn()
+        for i in range(10):
+            g.endOfRound()
 
         self.assertEqual(g.getWinner(), RED)
 
@@ -86,6 +84,16 @@ class testAlphaCiv(unittest.TestCase):
 
         self.assertEqual(g.moveUnit((2,0), (1,0)), False)
     
+    def test_UnitsCantMoveOverCities(self):
+        g = Game()
+
+        self.assertEqual(g.moveUnit((2,0), (1,1)), False)
+
+    def test_UnitsCantMoveTwiceInTurn(self):
+        g = Game()
+        g.moveUnit((2,0), (2,1))
+        self.assertEqual(g.moveUnit((2,1), (2,0)), False)
+
     def test_RedMovement(self):
         g = Game()
         g.moveUnit((2,0), (2,1))
@@ -109,18 +117,40 @@ class testAlphaCiv(unittest.TestCase):
         g.endOfTurn()
         
         self.assertEqual(g.moveUnit((2,0), (2,1)), False)
+
+    def test_RedAttacksAndDestroysBlue(self):
+        g = Game()
+
+        g.moveUnit((4,3), (3,2))
+        self.assertEqual(g.getUnitAt((3,2)).getOwner(), RED)
         
     
 # City Tests--------------------------------------------------------------------
 
     def test_CityProduces6ProductionAtRoundEnd(self):
-        pass
+        g = Game()
+        g.endOfRound()
+
+        self.assertEqual(g.getCityAt((1,1)).getProductionPoints(), 6)
 
     def test_CityPopulationSizeIs1(self):
-        pass
+        self.assertEqual(self.game.getCityAt((1,1)).getSize(), 1)
 
-    def test_RedAttacksAndDestroysBlue(self):
-        pass
+    def test_WorkforceFocus(self):
+        self.assertTrue(False)
+
+    def test_ChangeCityProduction(self):
+        g = Game()
+        city = g.getCityAt((1,1))
+        
+        g.changeCityProductionUnitAt((1,1), ARCHER) # DANGAAA ZONE, LANA
+        self.assertEqual(city.getProductionUnit(), ARCHER)
+        
+        g.changeCityProductionUnitAt((1,1), LEGION)
+        self.assertEqual(city.getProductionUnit(), LEGION)
+        
+        g.changeCityProductionUnitAt((1,1), SETTLER)
+        self.assertEqual(city.getProductionUnit(), SETTLER)
 
     def test_UnitPlacementIfCityIsVacant(self):
         pass
