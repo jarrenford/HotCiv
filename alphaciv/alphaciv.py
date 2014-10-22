@@ -85,14 +85,16 @@ class Game:
     def endOfRound(self):
         self._age -= 100
 
-        for square in self._board:
+        for index, square in enumerate(self._board):
             city = square[2]
             
             if city != None:
                 city.nextRoundPrep()
+
+                if city.getProductionUnit() == ARCHER and\
+                   city.getProductionPoints() >= 10:
+                        self._placeNewUnit(ARCHER, self._indexToPos(index))
         
-    def changeCityWorkforceAt(self, pos, focus):
-        pass
 
     def changeCityProductionUnitAt(self, pos, unit):
         city = self.getCityAt(pos)
@@ -124,10 +126,20 @@ class Game:
             return False
 
         return True
+
+    def _placeNewUnit(self, unit, pos):
+        row, column = pos
+
+        if self._posToIndex((row, column-1)) 
+        self._board[16][1] = Unit(RED, ARCHER)
     
     def _posToIndex(self, pos):
         row, col = pos
         return (row * 16) + col
+
+    def _indexToPos(self, index):
+        return (index // 16, index % 16)
+    
 # --------------------------------------------------------
 class Unit:
     
@@ -225,6 +237,5 @@ class City():
     def nextRoundPrep(self):
         if self._workforceFocus == PRODUCTION:
             self._productionPoints += 6
-        
 
 # --------------------------------------------------------

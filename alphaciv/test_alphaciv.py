@@ -129,15 +129,23 @@ class testAlphaCiv(unittest.TestCase):
 
     def test_CityProduces6ProductionAtRoundEnd(self):
         g = Game()
+        city = g.getCityAt((1,1))
+        city.changeWorkforceFocus(PRODUCTION)
         g.endOfRound()
-
-        self.assertEqual(g.getCityAt((1,1)).getProductionPoints(), 6)
+        
+        self.assertEqual(city.getProductionPoints(), 6)
 
     def test_CityPopulationSizeIs1(self):
         self.assertEqual(self.game.getCityAt((1,1)).getSize(), 1)
 
     def test_WorkforceFocus(self):
-        self.assertTrue(False)
+        g = Game()
+
+        city = g.getCityAt((1,1))
+        city.changeWorkforceFocus(FOOD)
+        self.assertEqual(city.getWorkforceFocus(), FOOD)
+        city.changeWorkforceFocus(PRODUCTION)
+        self.assertEqual(city.getWorkforceFocus(), PRODUCTION)
 
     def test_ChangeCityProduction(self):
         g = Game()
@@ -153,7 +161,25 @@ class testAlphaCiv(unittest.TestCase):
         self.assertEqual(city.getProductionUnit(), SETTLER)
 
     def test_UnitPlacementIfCityIsVacant(self):
-        pass
+        g = Game()
+        city = g.getCityAt((1,1))
+
+        city.changeWorkforceFocus(PRODUCTION)
+        city.changeProductionUnit(ARCHER)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,0)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((2,0)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
+            
+
 
     def test_UnitPlacementIfCityIsOccupied(self):
         # Unit will go to the tile due north.
