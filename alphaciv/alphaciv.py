@@ -38,7 +38,7 @@ class Game:
     
     def getUnitAt(self, pos):
         unit = self._board[self._posToIndex(pos)][1]
-
+        
         if unit == None or self.getCityAt(pos) != -1:
             return -1
 
@@ -91,9 +91,13 @@ class Game:
             if city != None:
                 city.nextRoundPrep()
 
-                if city.getProductionUnit() == ARCHER and\
+                if city.getProductionUnit() == None:
+                    return
+                
+                if city.getProductionUnit().getUnitType() == ARCHER and\
                    city.getProductionPoints() >= 10:
-                        self._placeNewUnit(ARCHER, self._indexToPos(index))
+                    print(self._indexToPos(index))
+                    self._placeNewUnit(Unit(city.getOwner(), ARCHER), self._indexToPos(index))
         
 
     def changeCityProductionUnitAt(self, pos, unit):
@@ -128,14 +132,67 @@ class Game:
         return True
 
     def _placeNewUnit(self, unit, pos):
-        row, column = pos
+        x, y = pos
+        y -= 1
+        
+        timeList = [[1,2,2,2,0], [2,4,4,4,1], [3,6,6,6,2], [4,8,8,8,3]]
 
-        if self._posToIndex((row, column-1)) 
-        self._board[16][1] = Unit(RED, ARCHER)
+        # See if the space due north is placeable
+        if self._isPlaceable((x,y)):
+            self._board[self._posToIndex((x,y))][1] = unit
+            return
+
+        # Check other spaces
+        for time in timeList:
+            for i in range(time[0]):
+                x+=1
+                if self._isPlaceable((x,y)):
+                    self._board[self._posToIndex((x,y))][1] = unit
+                    return
+                
+            for i in range(time[1]):
+                y+=1
+                if self._isPlaceable((x,y)):
+                    self._board[self._posToIndex((x,y))][1] = unit
+                    return
+                
+            for i in range(time[2]):
+                x-=1
+                if self._isPlaceable((x,y)):
+                    self._board[self._posToIndex((x,y))][1] = unit
+                    return
+                
+            for i in range(time[3]):
+                y -=1
+                if self._isPlaceable((x,y)):
+                    self._board[self._posToIndex((x,y))][1] = unit
+                    return
+                
+            for i in range(time[4]):
+                x += 1
+                if self._isPlaceable((x,y)):
+                    self._board[self._posToIndex((x,y))][1] = unit
+                    return
+
+        return -1
+
+    def _isPlaceable(self, pos):
+        index = self._posToIndex(pos)
+
+        if self._board[index][1] != None:
+            #print(pos, "(1) is not placeable")
+            return False
+
+        if not self._board[index][0].isPassable():
+            #print(pos, "(2) is not placeable")
+            return False
+
+        #print(pos, "is placeable")
+        return True
     
     def _posToIndex(self, pos):
-        row, col = pos
-        return (row * 16) + col
+        x, y = pos
+        return (x * 16) + y
 
     def _indexToPos(self, index):
         return (index // 16, index % 16)
@@ -154,13 +211,7 @@ class Unit:
     
     def getUnitType(self):
         return self._type
-
-    def getAttackingStrength(self):
-        pass
-
-    def getDefenseStrength(self):
-        pass
-
+    
     def getMoveCount(self):
         return self._moveCount
 
@@ -223,11 +274,14 @@ class City():
         return self._productionPoints
     
     def getProductionUnit(self):
+        if self._productionUnit == None:
+            return self._productionUnit
+        
         return self._productionUnit
 
-    def changeProductionUnit(self, unit):
-        if unit in [ARCHER, LEGION, SETTLER]:
-            self._productionUnit = unit
+    def changeProductionUnit(self, unitType):
+        if unitType in [ARCHER, LEGION, SETTLER]:
+            self._productionUnit = Unit(self._owner, unitType)
         else:
             return -1
 

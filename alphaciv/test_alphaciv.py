@@ -152,44 +152,35 @@ class testAlphaCiv(unittest.TestCase):
         city = g.getCityAt((1,1))
         
         g.changeCityProductionUnitAt((1,1), ARCHER) # DANGAAA ZONE, LANA
-        self.assertEqual(city.getProductionUnit(), ARCHER)
+        self.assertEqual(city.getProductionUnit().getUnitType(), ARCHER)
         
         g.changeCityProductionUnitAt((1,1), LEGION)
-        self.assertEqual(city.getProductionUnit(), LEGION)
+        self.assertEqual(city.getProductionUnit().getUnitType(), LEGION)
         
         g.changeCityProductionUnitAt((1,1), SETTLER)
-        self.assertEqual(city.getProductionUnit(), SETTLER)
+        self.assertEqual(city.getProductionUnit().getUnitType(), SETTLER)
 
-    def test_UnitPlacementIfCityIsVacant(self):
+    def test_UnitPlacementAroundCity(self):
+        # Unit will go to the tile due north.
         g = Game()
         city = g.getCityAt((1,1))
 
         city.changeWorkforceFocus(PRODUCTION)
         city.changeProductionUnit(ARCHER)
+        #print(city.getProductionUnit())
 
         g.endOfRound()
         g.endOfRound()
-        self.assertEqual(g.getUnitAt((1,0)).getOwner(), RED)
-
-        g.endOfRound()
-        g.endOfRound()
-        self.assertEqual(g.getUnitAt((2,0)).getOwner(), RED)
-
-        g.endOfRound()
-        g.endOfRound()
+        
         self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
-            
 
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,2)).getOwner(), RED)
 
-    def test_UnitPlacementIfCityIsOccupied(self):
-        # Unit will go to the tile due north.
-        pass
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,2)).getOwner(), RED)
 
-    def test_UnitPlacementIfCityAndNorthIsOccupied(self):
-        # Unit will go clockwise to find an open tile.
-        pass
-    
-    
-
-
+        
 unittest.main()
