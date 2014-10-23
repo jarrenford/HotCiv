@@ -151,63 +151,62 @@ class testAlphaCiv(unittest.TestCase):
         g = Game()
         city = g.getCityAt((1,1))
         
-        g.changeCityProductionUnitAt((1,1), ARCHER) # DANGAAA ZONE, LANA
-        self.assertEqual(city.getProductionUnit().getUnitType(), ARCHER)
+        g.changeCityProductionAt((1,1), ARCHER)
+        self.assertEqual(city.getProduction().getUnitType(), ARCHER)
         
-        g.changeCityProductionUnitAt((1,1), LEGION)
-        self.assertEqual(city.getProductionUnit().getUnitType(), LEGION)
+        g.changeCityProductionAt((1,1), LEGION)
+        self.assertEqual(city.getProduction().getUnitType(), LEGION)
         
-        g.changeCityProductionUnitAt((1,1), SETTLER)
-        self.assertEqual(city.getProductionUnit().getUnitType(), SETTLER)
+        g.changeCityProductionAt((1,1), SETTLER)
+        self.assertEqual(city.getProduction().getUnitType(), SETTLER)
 
     def test_UnitPlacementAroundCity(self):
         # Unit will go to the tile due north.
-        g = Game()
-        city = g.getCityAt((1,1))
 
-        city.changeWorkforceFocus(PRODUCTION)
-        city.changeProductionUnit(ARCHER)
+        for unit in [ARCHER, LEGION, SETTLER]:
+            g = Game()
+            city = g.getCityAt((1,1))
+            city.changeWorkforceFocus(PRODUCTION)
+            city.changeProduction(unit)
 
-        # List of valid tiles to place at
-        coords = [(1,1),(0,1),(0,2),(1,2),(2,1),(0,0),(15,0),
-                  (3,3),(3,1),(3,0),(0,4),(1,4),(2,4),(3,4),
-                  (4,4),(4,2),(4,0),(0,5),(1,5),(2,5),(3,5),
-                  (4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)]
+            # List of valid tiles to place at
+            coords = [(1,1),(0,1),(0,2),(1,2),(2,1),(0,0),(0,3),
+                      (1,3),(2,3),(3,3),(3,1),(3,0),(0,4),(1,4),
+                      (2,4),(3,4),(4,4),(4,2),(4,0),(0,5),(1,5),
+                      (2,5),(3,5),(4,5),(5,5),(5,4),(5,3),(5,2),
+                      (5,1),(5,0)]
 
-        # Test placement at valid tiles
-        #for pos in coords:
-            #g.endOfRound()
-            #g.endOfRound()
+            # Test placement at valid tiles
+            for pos in coords:
+                g.endOfRound()
+                g.endOfRound()
+                
+                if unit == LEGION:
+                    g.endOfRound()
+                    
+                if unit == SETTLER:
+                    g.endOfRound()
+                    g.endOfRound()
+                    g.endOfRound()
 
-            #print(pos)
-            #self.assertEqual(g.getUnitAt((15,0)).getOwner(), RED)
-        g.endOfRound()
-        g.endOfRound()
-        self.assertEqual(g.getUnitAt((1,1)).getOwner(), RED)
+                self.assertEqual(g.getUnitAt(pos).getOwner(), RED)
 
-        g.endOfRound()
-        g.endOfRound()
-        self.assertEqual(g.getUnitAt((0,1)).getOwner(), RED)
+            # Test placement at non-placable tiles
+            for pos in [(1,0),(2,2)]:
+                self.assertEqual(g.getUnitAt(pos), -1)
 
-        g.endOfRound()
-        g.endOfRound()
-        self.assertEqual(g.getUnitAt((8,8)).getOwner(), RED)
+            # Test for unit replacement
+            self.assertEqual(g.getUnitAt((3,2)).getOwner(), BLUE)
+
+            # Test placement outside of board
+            self.assertEqual(g.getUnitAt((-1,0)), -1)
+            self.assertEqual(g.getUnitAt((0,-1)), -1)
+            self.assertEqual(g.getUnitAt((17,0)), -1)
+            self.assertEqual(g.getUnitAt((0,17)), -1)
+
+            for pos in [(-1,0),(0,-1),(17,0),(0,17)]:
+                self.assertEqual(g.getUnitAt(pos), -1)
 
 
-        # Test placement at non-placable tiles
-        for pos in [(1,0),(2,2)]:
-            self.assertEqual(g.getUnitAt(pos), -1)
-
-        # Test for unit replacement
-        self.assertEqual(g.getUnitAt((3,2)).getOwner(), BLUE)
-
-        # Test placement outside of board
-        self.assertEqual(g.getUnitAt((-1,0)), -1)
-        self.assertEqual(g.getUnitAt((0,-1)), -1)
-        self.assertEqual(g.getUnitAt((17,0)), -1)
-        self.assertEqual(g.getUnitAt((0,17)), -1)
-
-        #for pos in [(-1,0),(0,-1),(17,0),(0,17)]:
-        #    self.assertEqual(g.getUnitAt(pos), -1)
         
 unittest.main()
