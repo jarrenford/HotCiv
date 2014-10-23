@@ -39,14 +39,16 @@ class Game:
     def getUnitAt(self, pos):
         row,col = pos
 
-        if not (0 < row < 16 or 0 < col < 16):
+        if row < 0 or row > 16 or col < 0 or col > 16:
             return -1
+        #if col < 0 or col > 16:
+            #return -1
         
         unit = self._board[self._posToIndex(pos)][1]
         
-        if (unit == None or self.getCityAt(pos) != -1):
+        if unit == None:
             return -1
-
+        
         return unit
     
     def getCityAt(self, pos):
@@ -94,16 +96,16 @@ class Game:
             city = square[2]
             
             if city != None:
-                city.nextRoundPrep()
-
-                if city.getProductionUnit() == None:
-                    return
+                print("HI JARREN")
+                city.nextRoundPrep(index)
                 
-                if city.getProductionUnit().getUnitType() == ARCHER and\
-                   city.getProductionPoints() >= 10:
-                    self._placeNewUnit(Unit(city.getOwner(), ARCHER), self._indexToPos(index))
-        
-
+                if city.getProductionUnit() != None:
+                    if city.getProductionUnit().getUnitType() == ARCHER and city.getProductionPoints() >= 10:
+                        print("HEY")
+                        city.changeProductionPoints(ARCHER)
+                        self._placeNewUnit(Unit(city.getOwner(), ARCHER), self._indexToPos(index))
+                        
+            
     def changeCityProductionUnitAt(self, pos, unit):
         city = self.getCityAt(pos)
         city.changeProductionUnit(unit)
@@ -137,32 +139,46 @@ class Game:
 
     def _placeNewUnit(self, unit, pos):
         row, col = pos
-        col -= 1
-        
-        timeList = [[1,2,2,2,0]]
 
-        for i in range(16):
-            tmp = []
-            adds = [1,2,2,2,1]
-
-            for enum, q in enumerate(timeList[-1]):
-                tmp.append(q+adds[enum])
-
-            timeList.append(tmp)
-        
-        # See if the space due north is placeable
+        # Place unit on city if it's open
         if self._isPlaceable((row,col)):
             self._board[self._posToIndex((row,col))][1] = unit
             return
+        
 
-        # Check other spaces
+       
+        timeList = [[1,2,2,2,0], [2,4,4,4,1], [3,6,6,6,2]]
+        
+        #for i in range(16):
+         #   tmp = []
+          #  adds = [1,2,2,2,1]
+
+           # for enum, q in enumerate(timeList[-1]):
+            #    tmp.append(q+adds[enum])
+
+            #timeList.append(tmp)
+        
+        # Place unit due North if it's open
+        row -= 1
+        if self._isPlaceable((row,col)):
+            self._board[self._posToIndex((row,col))][1] = unit
+            return
+        # Place at the nearest space clockwise from due North of the city
         for time in timeList:
             for i in range(time[0]):
-                row += 1
+                col += 1
                 if self._isPlaceable((row,col)):
+                    print(self._board[136][1])
+                    print((row,col))
+                    print(self._posToIndex((row,col)))
+                    print(unit)
                     self._board[self._posToIndex((row,col))][1] = unit
+                    print(unit)
+                    print(self._posToIndex((row,col)))
+                    print((row,col))
+                    print(self._board[136][1])
                     return
-                
+            print("HI JARREN")
             for i in range(time[1]):
                 col += 1
                 if self._isPlaceable((row,col)):
@@ -296,6 +312,19 @@ class City():
 
     def getProductionPoints(self):
         return self._productionPoints
+
+    def changeProductionPoints(self, unit):
+        if unit == ARCHER:
+            self._productionPoints -= 10
+
+        elif unit == LEGION:
+            self._productionPoints -= 15
+
+        elif unit == SETTLER:
+            self._productionPoints -= 30
+
+        else:
+            return
     
     def getProductionUnit(self):
         if self._productionUnit == None:
@@ -312,8 +341,10 @@ class City():
     def getFood(self):
         return self._food
     
-    def nextRoundPrep(self):
+    def nextRoundPrep(self, index):
         if self._workforceFocus == PRODUCTION:
             self._productionPoints += 6
+        
+        
 
 # --------------------------------------------------------

@@ -169,18 +169,30 @@ class testAlphaCiv(unittest.TestCase):
         city.changeProductionUnit(ARCHER)
 
         # List of valid tiles to place at
-        coords = [(0,0),(1,2),(2,1),(0,0),(0,3),(1,3),(2,3),
+        coords = [(1,1),(0,1),(0,2),(1,2),(2,1),(0,0),(15,0),
                   (3,3),(3,1),(3,0),(0,4),(1,4),(2,4),(3,4),
                   (4,4),(4,2),(4,0),(0,5),(1,5),(2,5),(3,5),
                   (4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)]
 
         # Test placement at valid tiles
-        for pos in coords:
-            g.endOfRound()
-            g.endOfRound()
+        #for pos in coords:
+            #g.endOfRound()
+            #g.endOfRound()
 
-            print(pos)
-            self.assertEqual(g.getUnitAt(pos).getOwner(), RED)
+            #print(pos)
+            #self.assertEqual(g.getUnitAt((15,0)).getOwner(), RED)
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,1)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,1)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((8,8)).getOwner(), RED)
+
 
         # Test placement at non-placable tiles
         for pos in [(1,0),(2,2)]:
