@@ -37,9 +37,14 @@ class Game:
             return -1
     
     def getUnitAt(self, pos):
+        row,col = pos
+
+        if not (0 < row < 16 or 0 < col < 16):
+            return -1
+        
         unit = self._board[self._posToIndex(pos)][1]
         
-        if unit == None or self.getCityAt(pos) != -1:
+        if (unit == None or self.getCityAt(pos) != -1):
             return -1
 
         return unit
@@ -96,7 +101,6 @@ class Game:
                 
                 if city.getProductionUnit().getUnitType() == ARCHER and\
                    city.getProductionPoints() >= 10:
-                    print(self._indexToPos(index))
                     self._placeNewUnit(Unit(city.getOwner(), ARCHER), self._indexToPos(index))
         
 
@@ -132,67 +136,87 @@ class Game:
         return True
 
     def _placeNewUnit(self, unit, pos):
-        x, y = pos
-        y -= 1
+        row, col = pos
+        col -= 1
         
-        timeList = [[1,2,2,2,0], [2,4,4,4,1], [3,6,6,6,2], [4,8,8,8,3]]
+        timeList = [[1,2,2,2,0]]
 
+        for i in range(16):
+            tmp = []
+            adds = [1,2,2,2,1]
+
+            for enum, q in enumerate(timeList[-1]):
+                tmp.append(q+adds[enum])
+
+            timeList.append(tmp)
+        
         # See if the space due north is placeable
-        if self._isPlaceable((x,y)):
-            self._board[self._posToIndex((x,y))][1] = unit
+        if self._isPlaceable((row,col)):
+            self._board[self._posToIndex((row,col))][1] = unit
             return
 
         # Check other spaces
         for time in timeList:
             for i in range(time[0]):
-                x+=1
-                if self._isPlaceable((x,y)):
-                    self._board[self._posToIndex((x,y))][1] = unit
+                row += 1
+                if self._isPlaceable((row,col)):
+                    self._board[self._posToIndex((row,col))][1] = unit
                     return
                 
             for i in range(time[1]):
-                y+=1
-                if self._isPlaceable((x,y)):
-                    self._board[self._posToIndex((x,y))][1] = unit
+                col += 1
+                if self._isPlaceable((row,col)):
+                    self._board[self._posToIndex((row,col))][1] = unit
                     return
                 
             for i in range(time[2]):
-                x-=1
-                if self._isPlaceable((x,y)):
-                    self._board[self._posToIndex((x,y))][1] = unit
+                row -= 1
+                if self._isPlaceable((row,col)):
+                    self._board[self._posToIndex((row,col))][1] = unit
                     return
                 
             for i in range(time[3]):
-                y -=1
-                if self._isPlaceable((x,y)):
-                    self._board[self._posToIndex((x,y))][1] = unit
+                col -= 1
+                if self._isPlaceable((row,col)):
+                    self._board[self._posToIndex((row,col))][1] = unit
                     return
                 
             for i in range(time[4]):
-                x += 1
-                if self._isPlaceable((x,y)):
-                    self._board[self._posToIndex((x,y))][1] = unit
+                row += 1
+                if self._isPlaceable((row,col)):
+                    self._board[self._posToIndex((row,col))][1] = unit
                     return
 
         return -1
 
     def _isPlaceable(self, pos):
-        index = self._posToIndex(pos)
+        row,col = pos
+        
+        if not (0 < row < 16 or 0 < col < 16):
+            return False
 
+        index = self._posToIndex(pos)
+        
         if self._board[index][1] != None:
-            #print(pos, "(1) is not placeable")
             return False
 
         if not self._board[index][0].isPassable():
-            #print(pos, "(2) is not placeable")
             return False
 
-        #print(pos, "is placeable")
         return True
     
     def _posToIndex(self, pos):
-        x, y = pos
-        return (x * 16) + y
+        row, col = pos
+
+        if row < 0 or col < 0:
+            return False
+        
+        index = (row * 16) + col
+
+        if len(self._board) < index < 0:
+            return False
+        else:
+            return index
 
     def _indexToPos(self, index):
         return (index // 16, index % 16)

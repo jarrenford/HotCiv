@@ -167,20 +167,35 @@ class testAlphaCiv(unittest.TestCase):
 
         city.changeWorkforceFocus(PRODUCTION)
         city.changeProductionUnit(ARCHER)
-        #print(city.getProductionUnit())
 
-        g.endOfRound()
-        g.endOfRound()
-        
-        self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
+        # List of valid tiles to place at
+        coords = [(0,0),(1,2),(2,1),(0,0),(0,3),(1,3),(2,3),
+                  (3,3),(3,1),(3,0),(0,4),(1,4),(2,4),(3,4),
+                  (4,4),(4,2),(4,0),(0,5),(1,5),(2,5),(3,5),
+                  (4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)]
 
-        g.endOfRound()
-        g.endOfRound()
-        self.assertEqual(g.getUnitAt((1,2)).getOwner(), RED)
+        # Test placement at valid tiles
+        for pos in coords:
+            g.endOfRound()
+            g.endOfRound()
 
-        g.endOfRound()
-        g.endOfRound()
-        self.assertEqual(g.getUnitAt((0,2)).getOwner(), RED)
+            print(pos)
+            self.assertEqual(g.getUnitAt(pos).getOwner(), RED)
 
+        # Test placement at non-placable tiles
+        for pos in [(1,0),(2,2)]:
+            self.assertEqual(g.getUnitAt(pos), -1)
+
+        # Test for unit replacement
+        self.assertEqual(g.getUnitAt((3,2)).getOwner(), BLUE)
+
+        # Test placement outside of board
+        self.assertEqual(g.getUnitAt((-1,0)), -1)
+        self.assertEqual(g.getUnitAt((0,-1)), -1)
+        self.assertEqual(g.getUnitAt((17,0)), -1)
+        self.assertEqual(g.getUnitAt((0,17)), -1)
+
+        #for pos in [(-1,0),(0,-1),(17,0),(0,17)]:
+        #    self.assertEqual(g.getUnitAt(pos), -1)
         
 unittest.main()
