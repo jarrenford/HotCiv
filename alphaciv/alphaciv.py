@@ -41,7 +41,7 @@ class Game:
         """Return the unit object located at 'pos' (row,col) on the board"""
         row,col = pos
 
-        if row < 0 or row > 16 or col < 0 or col > 16:
+        if -1 >= row >= MAXRADIUS or -1 >= col >= MAXRADIUS:
             return -1
         
         unit = self._board[self._posToIndex(pos)][1]
@@ -168,7 +168,7 @@ class Game:
         if self._isPlaceable((row,col)):
             return (row,col)
 
-        for rad in range(1, MAXRADIUS+1):
+        for rad in range(1, MAXRADIUS-1):
             # Go across the top
             for colInc in range(rad):
                 nPos = (row-rad, col+colInc)
@@ -200,15 +200,17 @@ class Game:
     def _isPlaceable(self, pos):
         # Helper function that decides if a unit can be placed at 'pos'
         row,col = pos
-        
-        if not (0 < row < 16 or 0 < col < 16):
-            return False
-
         index = self._posToIndex(pos)
         
+        if index == None:
+            return False
+        
+        if -2 >= row >= MAXRADIUS or -2 >= col >= MAXRADIUS:
+            return False
+       
         if self._board[index][1] != None:
             return False
-
+        
         if not self._board[index][0].isPassable():
             return False
 
@@ -216,17 +218,15 @@ class Game:
     
     def _posToIndex(self, pos):
         # Helper function that translates 'pos' into an index of the game board
+        if pos == None:
+            return False
         row, col = pos
 
-        if row < 0 or col < 0:
+        if -1 >= row >= MAXRADIUS or -1 >= col >= MAXRADIUS:
             return False
         
-        index = (row * 16) + col
+        return (row * 16) + col
 
-        if len(self._board) < index < 0:
-            return False
-        else:
-            return index
 
     def _indexToPos(self, index):
         # Helper function that translates an index of the game board into a 'pos' tuple
