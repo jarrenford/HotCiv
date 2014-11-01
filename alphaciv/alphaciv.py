@@ -108,15 +108,15 @@ class Game:
                 if city.getProduction() != None:
                     if city.getProduction().getUnitType() == ARCHER and city.getProductionPoints() >= 10:
                         city._changeProductionPoints(ARCHER)
-                        self._placeNewUnit(Unit(city.getOwner(), ARCHER), self._indexToPos(index))
+                        self._placeUnitsInSpiral(Unit(city.getOwner(), ARCHER), index)
 
                     if city.getProduction().getUnitType() == LEGION and city.getProductionPoints() >= 15:
                         city._changeProductionPoints(LEGION)
-                        self._placeNewUnit(Unit(city.getOwner(), LEGION), self._indexToPos(index))
+                        self._placeUnitsInSpiral(Unit(city.getOwner(), LEGION), index)
 
                     if city.getProduction().getUnitType() == SETTLER and city.getProductionPoints() >= 30:
                         city._changeProductionPoints(SETTLER)
-                        self._placeNewUnit(Unit(city.getOwner(), SETTLER), self._indexToPos(index))
+                        self._placeUnitsInSpiral(Unit(city.getOwner(), SETTLER), index)
                         
     def changeCityWorkforceAt(self, pos, balance):
         city = self.getCityAt(pos)
@@ -156,65 +156,46 @@ class Game:
 
         return True
 
-    def _placeNewUnit(self, unit, pos):
+    def _placeUnitsInSpiral(self, unit, cityIndex):
+
+        pos = self._spiralGenerator(cityIndex)
+        self._board[self._posToIndex(pos)][1] = unit
+
+    def _spiralGenerator(self, index):
         # Helper function that handles placing units at the end of the round
-        row, col = pos
-
-        # Place unit on city if it's open
+        row,col = self._indexToPos(index)
+        
         if self._isPlaceable((row,col)):
-            self._board[self._posToIndex((row,col))][1] = unit
-            return
- 
-        timeList = [[1,2,2,2,0]]
-        
-        for i in range(16):
-            tmp = []
-            adds = [1,2,2,2,1]
+            return (row,col)
 
-            for enum, q in enumerate(timeList[-1]):
-                tmp.append(q+adds[enum])
+        for rad in range(1, MAXRADIUS+1):
+            # Go across the top
+            for colInc in range(rad):
+                nPos = (row-rad, col+colInc)
+                
+                if self._isPlaceable(nPos):
+                    return nPos
 
-            timeList.append(tmp)
-        
-        # Place unit due North if it's open
-        row -= 1
-        if self._isPlaceable((row,col)):
-            self._board[self._posToIndex((row,col))][1] = unit
-            return
-        
-        # Place at the nearest space clockwise from due North of the city
-        for time in timeList:
-            for i in range(time[0]):
-                col += 1
-                if self._isPlaceable((row,col)):
-                    self._board[self._posToIndex((row,col))][1] = unit
-                    return
+            # Go down right
+            for rowInc in range(-rad, rad):
+                nPos = (row+rowInc, col+rad)
                 
-            for i in range(time[1]):
-                col += 1
-                if self._isPlaceable((row,col)):
-                    self._board[self._posToIndex((row,col))][1] = unit
-                    return
-                
-            for i in range(time[2]):
-                row -= 1
-                if self._isPlaceable((row,col)):
-                    self._board[self._posToIndex((row,col))][1] = unit
-                    return
-                
-            for i in range(time[3]):
-                col -= 1
-                if self._isPlaceable((row,col)):
-                    self._board[self._posToIndex((row,col))][1] = unit
-                    return
-                
-            for i in range(time[4]):
-                row += 1
-                if self._isPlaceable((row,col)):
-                    self._board[self._posToIndex((row,col))][1] = unit
-                    return
+                if self._isPlaceable(nPos):
+                    return nPos
 
-        return -1
+            # Go across the bottom
+            for colInc in range(rad):
+                nPos = (row+rad, col-colInc)
+                
+                if self._isPlaceable(nPos):
+                    return nPos
+
+            # Go up left
+            for rowInc in range(rad, -rad):
+                nPos = (row-rowInc, col-rad)
+
+                if self._isPlaceable(nPos):
+                    return nPos
 
     def _isPlaceable(self, pos):
         # Helper function that decides if a unit can be placed at 'pos'

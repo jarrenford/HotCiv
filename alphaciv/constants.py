@@ -16,3 +16,6 @@ PRODUCTION = 'production'
 ARCHER = 'archer'
 LEGION = 'legion'
 SETTLER = 'settler'
+
+# Settings
+MAXRADIUS = 16
