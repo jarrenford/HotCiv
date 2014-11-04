@@ -17,17 +17,23 @@ class Game:
         self._hasMoved = []
 
         # Stores the board: a list containing tuples (tile, unit, city)
-        self._board = [[Tile(PLAINS), None, None]]*256
-        self._board[17] = [Tile(PLAINS), None, City(RED)]
-        self._board[65] = [Tile(PLAINS), None, City(BLUE)]
-        self._board[WORLDSIZE] = [Tile(OCEANS), None, None]
-        self._board[1] = [Tile(HILLS), None, None]
-        self._board[34] = [Tile(MOUNTAINS), None, None]
+        self._tileBoard = [[PLAINS for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+        self._cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+        self._unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+
+        ### Place items on board
+        self._placeTileOnBoard((1,0), Tile(OCEANS))
+        self._placeTileOnBoard((0,1), Tile(HILLS))
+        self._placeTileOnBoard((2,2), Tile(MOUNTAINS))
+
+        self._placeCityOnBoard((1,0), City(RED))
+        self._placeCityOnBoard((4,0), City(BLUE))
+
+        self._placeUnitOnBoard((2,0), Unit(RED,ARCHER))
+        self._placeUnitOnBoard((3,2), Unit(BLUE,LEGION))
+        self._placeUnitOnBoard((4,3), Unit(RED,SETTLER))
+        ###
         
-        self._board[32] = [Tile(PLAINS), Unit(RED,ARCHER), None]
-        self._board[50] = [Tile(PLAINS), Unit(BLUE,LEGION), None]
-        self._board[67] = [Tile(PLAINS), Unit(RED,SETTLER), None]
-    
     def getTileAt(self, pos):
         """Return the tile object at 'pos' (row,col) on the board"""
         tile = self._board[self._posToIndex(pos)][0]
@@ -79,9 +85,8 @@ class Game:
         if not self._isMoveValid(posFrom, posTo):
             return False
 
-        self._board[self._posToIndex(posFrom)][1] = None
-        self._board[self._posToIndex(posTo)][1] = unit
-
+        self._placeUnitOnBoard(posTo, unit)
+        self._placeUnitOnBoard(posFrom, noUnit())
         self._hasMoved.append(posTo)
     
     def endOfTurn(self):
@@ -127,6 +132,24 @@ class Game:
         city = self.getCityAt(pos)
         city.changeProduction(unit)
 
+    ### Placement helpers
+    def _placeTileOnBoard(self, pos, tile):
+        row,col = pos
+        
+        self._tileBoard[row][col] = tile
+        
+    def _placeCityOnBoard(self, pos, city):
+        row,col = pos
+            
+        self._cityBoard[row][col] = city
+        
+
+    def _placeUnitOnBoard(self, pos, unit):
+        row,col = pos
+        
+        self._unitBoard[row][col] = unit
+    ###
+    
     def _isMoveValid(self, posFrom, posTo):
         # Helper function that determines whether or not a move is valid
         
@@ -156,14 +179,14 @@ class Game:
 
         return True
 
-    def _placeUnitsInSpiral(self, unit, cityIndex):
+    def _placeUnitsInSpiral(self, unit, cityPos):
 
-        pos = self._spiralGenerator(cityIndex)
-        self._board[self._posToIndex(pos)][1] = unit
+        pos = self._spiralGenerator(cityPos)
+        self._placeUnitOnBoard(pos, unit)
 
-    def _spiralGenerator(self, index):
+    def _spiralGenerator(self, pos):
         # Helper function that handles placing units at the end of the round
-        row,col = self._indexToPos(index)
+        row,col = pos
         
         if self._isPlaceable((row,col)):
             return (row,col)
@@ -200,37 +223,17 @@ class Game:
     def _isPlaceable(self, pos):
         # Helper function that decides if a unit can be placed at 'pos'
         row,col = pos
-        index = self._posToIndex(pos)
-        
-        if index == None:
-            return False
         
         if -2 >= row >= WORLDSIZE or -2 >= col >= WORLDSIZE:
             return False
        
-        if self._board[index][1] != None:
+        if isinstance(self._unitBoard[row][col], noCity):
             return False
         
-        if not self._board[index][0].isPassable():
+        if not self.getTileAt(pos).isPassable():
             return False
 
         return True
-    
-    def _posToIndex(self, pos):
-        # Helper function that translates 'pos' into an index of the game board
-        if pos == None:
-            return False
-        row, col = pos
-
-        if -1 >= row >= WORLDSIZE or -1 >= col >= WORLDSIZE:
-            return False
-        
-        return (row * WORLDSIZE) + col
-
-
-    def _indexToPos(self, index):
-        # Helper function that translates an index of the game board into a 'pos' tuple
-        return (index // WORLDSIZE, index % WORLDSIZE)
     
 # --------------------------------------------------------
 class Unit:
