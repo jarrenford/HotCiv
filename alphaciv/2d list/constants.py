@@ -17,5 +17,7 @@ ARCHER = 'archer'
 LEGION = 'legion'
 SETTLER = 'settler'
 
+UNITCOSTS = {ARCHER:10, LEGION:15, SETTLER:30}
+
 # Settings
 WORLDSIZE = 16
