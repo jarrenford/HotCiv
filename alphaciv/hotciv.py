@@ -11,10 +11,11 @@ class HotCiv:
         and its related commands."""
 
         self._version = version
-        self._winner = version.createWinner()
+        self._winner = version().createWinner()
+        self._ageStrategy = version().createAging()
         self._turnCount = 0
         self._turn = RED
-        self._age = 4000
+        self._age = -4000
         self._hasMoved = []
         
         
@@ -103,8 +104,11 @@ class HotCiv:
 
     def endOfRound(self):
         """Handles end-of-round events after each round"""
-        self._age -= 100
-
+        self._age = self._ageStrategy(self._age)
+        
+        if self.getWinner() != False:
+            return self.getWinner()
+        
         for row,x in enumerate(self._cityBoard):
             for col,city in enumerate(x):
                 city.nextRoundPrep()
@@ -412,14 +416,48 @@ def RedWinnerStrategy(year):
     return False
 
 def ConquerAllCitiesStrategy(year):
-
-    return False
     
-def LinearAgingStrategy():
-    pass
+    for row in self._cityBoard:
+        teams = [city.getOwner() for city in row if city.getOwner() != None]
+        
+    prev = teams[0]
+    for team in teams:
+        if team != prev:
+            return False
+        prev = team
+        
+    return prev
+            
+def LinearAgingStrategy(age):
+    
+    return age + 100
+    
+def VaryingAgingStrategy(age):
+    # Maybe make this a little nicer?
 
-def VaryingAgingStrategy():
-    pass
+    if -4000 <= age < -100:
+        return age + 100
+
+    if age == -100:
+        return age + 99
+
+    if age == -1:
+        return age + 2
+
+    if age == 1:
+        return age + 49
+
+    if 50 <= age < 1750:
+        return age + 50
+
+    if 1750 <= age < 1900:
+        return age + 25
+
+    if 1900 <= age < 1970:
+        return age + 5
+
+    else:
+        return age + 1
 
 # --------------------------------------------------------
 class AlphaCivFactory:
