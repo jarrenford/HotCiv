@@ -1,11 +1,11 @@
 #!python2
 # By: Jarren, Stetson, and Luke
-# test_alphaciv.py
+# test_betaciv.py
 
 import unittest
-from alphaciv import *
+from hotciv import *
 
-class testAlphaCiv(unittest.TestCase):
+class testCiv(unittest.TestCase):
 
     def setUp(self):
         self.game = Game()
@@ -178,7 +178,43 @@ class testAlphaCiv(unittest.TestCase):
         g.endOfRound()
         self.assertEqual(g.getUnitAt((0,2)).getOwner(), RED)
 
-        
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,2)).getOwner(), RED)
 
-        
-unittest.main()
+        g.endOfRound()
+        g.endOfRound() # Test invalid placement
+        self.assertEqual(g.getUnitAt((2,2)).getOwner(), None)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((2,0)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,0)).getOwner(), None)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,0)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,3)).getOwner(), RED)
+
+        # Test invalid placement
+        self.assertRaises(TypeError, g.getUnitAt((-1,0)))
+        self.assertRaises(TypeError, g.getUnitAt((0,-1)))
+        self.assertRaises(TypeError, g.getUnitAt((16,0)))
+        self.assertRaises(TypeError, g.getUnitAt((0,16)))
+
+
+class testBetaCiv(unittest.TestCase):
+    pass
+
+if __name__ == "__main__":
+    unittest.main()

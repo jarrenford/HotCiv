@@ -1,21 +1,23 @@
 #!python2
 # By: Jarren, Stetson, and Luke
-# alphaciv.py
+# hotciv.py
 
 from __future__ import print_function
 from constants import *
 
-
-class Game:
-    def __init__(self):
-        """A Game object manages a game of AlphaCiv, storing the board
+class HotCiv:
+    def __init__(self, version):
+        """A Game object manages a game of HotCiv, storing the board
         and its related commands."""
-        
+
+        self._version = version
+        self._winner = version.createWinner()
         self._turnCount = 0
         self._turn = RED
         self._age = 4000
         self._hasMoved = []
-
+        
+        
         # Stores the board: a list containing tuples (tile, unit, city)
         self._tileBoard = [[Tile(PLAINS) for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
         self._cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
@@ -48,7 +50,8 @@ class Game:
         """Return the unit object located at 'pos' (row,col) on the board"""
         row,col = pos
 
-        if -1 >= row >= WORLDSIZE or -1 >= col >= WORLDSIZE:
+        if (WORLDSIZE <= row or -1 >= row
+            or WORLDSIZE <= col or col <= -1):
             return False
         
         return self._unitBoard[row][col]
@@ -67,13 +70,14 @@ class Game:
         """Returns the player currently in turn"""
         return self._turn
     
-    def getWinner(self):
-        """Returns the game winner"""
-        return RED
-    
     def getAge(self):
         """Returns the current age"""
         return self._age
+
+    def getWinner(self, year):
+        """Returns the winner"""
+
+        return self._winner(year)
     
     def moveUnit(self, posFrom, posTo):
         """Moves a unit from 'posFrom' (row,col) to 'posTo' (row,col)"""
@@ -103,7 +107,9 @@ class Game:
 
         for row,x in enumerate(self._cityBoard):
             for col,city in enumerate(x):
-                if city.nextRoundPrep():
+                city.nextRoundPrep()
+                    
+                for i in range(city.buyNewUnit()):
                     pos = self._spiralGenerator((row,col))
                     unit = Unit(city.getOwner(), city.getProduction())
                     self._placeUnitOnBoard(pos, unit)
@@ -211,7 +217,8 @@ class Game:
         # Helper function that decides if a unit can be placed at 'pos'
         row,col = pos
     
-        if -2 >= row >= WORLDSIZE or -2 >= col >= WORLDSIZE:
+        if (WORLDSIZE <= row or -1 >= row
+            or WORLDSIZE <= col or col <= -1):
             return False
        
         if isinstance(self._unitBoard[row][col], noCity):
@@ -224,7 +231,7 @@ class Game:
             return False
 
         return True
-
+    
 # --------------------------------------------------------
 class noUnit:
 
@@ -236,11 +243,12 @@ class noUnit:
         pass
     def getMoveCount(self):
         pass
+
 # ---
 class Unit:
     
     def __init__(self, owner, unitType):
-        """A Unit is an AlphaCiv character belonging to 'owner' of given type 'unitType'.
+        """A Unit is an HotCiv character belonging to 'owner' of given type 'unitType'.
         Valid types are: ARCHER, LEGION, and SETTLER"""
         
         self._type = unitType
@@ -298,8 +306,9 @@ class Tile:
     def getProduction(self):
         """Returns the amount of production the tile produces"""
         return self._production
-
+    
 # --------------------------------------------------------
+
 class noCity:
     def __init__(self):
         pass
@@ -311,14 +320,14 @@ class noCity:
         pass
     def changeWorkforceFocus(self, focus):
         pass
-    def getProductionPoints(self):
-        pass
     def getProduction(self):
         return noUnit()
     def changeProduction(self, unitType):
         pass
     def getFood(self):
         pass
+    def buyNewUnit(self):
+        return -1
     def nextRoundPrep(self):
         pass
     def __changeProductionPoints(self, unit):
@@ -328,7 +337,7 @@ class City:
 
     def __init__(self, owner):
         """A City represents a city tile on the game board. It is the basis for
-        a player's progression in AlphaCiv."""
+        a player's progression in HotCiv."""
         
         self._size = 1
         self._owner = owner
@@ -358,8 +367,6 @@ class City:
             return False
 
     def getProductionPoints(self):
-        """Returns the number of production points the City currently has"""
-
         return self._productionPoints
     
     def getProduction(self):
@@ -376,22 +383,60 @@ class City:
         else:
             return False
 
+
     def getFood(self):
         """Returns the amount of food that the City has"""
         return self._food
     
-    def nextRoundPrep(self):
+    def buyNewUnit(self):
         # Subtracts production points based on which unit is being produced
+        unitCost = UNITCOSTS[self._production.getUnitType()]
+        
+        if self._productionPoints >= unitCost and unitCost != -1:
+            numOfUnits = self._productionPoints // unitCost
+            self._productionPoints -= unitCost*numOfUnits
+            return numOfUnits
+                    
+        return -1
+    
+    def nextRoundPrep(self):
         if self._workforceFocus == PRODUCTION:
             self._productionPoints += 6
-            unittype = self.getProduction().getUnitType()
             
-            if unittype != None:
-                if self._productionPoints >= UNITCOSTS[unittype]:
-                    self._productionPoints -= UNITCOSTS[unittype]
-                    return True
-                    
-        return False
-        
+# --------------------------------------------------------
+def RedWinnerStrategy(year):
+
+    if year == 3000:
+        return RED
+
+    return False
+
+def ConquerAllCitiesStrategy(year):
+
+    return False
+    
+def LinearAgingStrategy():
+    pass
+
+def VaryingAgingStrategy():
+    pass
+
+# --------------------------------------------------------
+class AlphaCivFactory:
+    
+    def createWinner(self):
+        return RedWinnerStrategy
+
+    def createAging(self):
+        return LinearAgingStrategy
+
+# --------------------------------------------------------
+class BetaCivFactory:
+    
+    def createWinner(self):
+        return ConquerAllCitiesStrategy
+
+    def createAging(self):
+        return VaryingAgingStrategy
 
 # --------------------------------------------------------

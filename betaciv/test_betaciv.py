@@ -1,11 +1,11 @@
 #!python2
 # By: Jarren, Stetson, and Luke
-# test_alphaciv.py
+# test_betaciv.py
 
 import unittest
-from alphaciv import *
+from betaciv import *
 
-class testAlphaCiv(unittest.TestCase):
+class testCiv(unittest.TestCase):
 
     def setUp(self):
         self.game = Game()
@@ -18,7 +18,7 @@ class testAlphaCiv(unittest.TestCase):
         self.assertEqual(self.game.getPlayerInTurn(), BLUE)
 
 # World Tests-------------------------------------------------------------------
-    
+        
     def test_RedCityAt1x1(self):
         self.assertEqual(self.game.getCityAt((1,1)).getOwner(), RED)
 
@@ -161,52 +161,60 @@ class testAlphaCiv(unittest.TestCase):
         self.assertEqual(city.getProduction().getUnitType(), SETTLER)
 
     def test_UnitPlacementAroundCity(self):
-        # Unit will go to the tile due north.
-
-        for unit in [ARCHER, LEGION, SETTLER]:
-            g = Game()
-            city = g.getCityAt((1,1))
-            city.changeWorkforceFocus(PRODUCTION)
-            city.changeProduction(unit)
-
-            # List of valid tiles to place at
-            coords = [(1,1),(0,1),(0,2),(1,2),(2,1),(0,0),(0,3),
-                      (1,3),(2,3),(3,3),(3,1),(3,0),(0,4),(1,4),
-                      (2,4),(3,4),(4,4),(4,2),(4,0),(0,5),(1,5),
-                      (2,5),(3,5),(4,5),(5,5),(5,4),(5,3),(5,2),
-                      (5,1),(5,0)]
-
-            # Test placement at valid tiles
-            for pos in coords:
-                g.endOfRound()
-                g.endOfRound()
-                
-                if unit == LEGION:
-                    g.endOfRound()
-                    
-                if unit == SETTLER:
-                    g.endOfRound()
-                    g.endOfRound()
-                    g.endOfRound()
-
-                self.assertEqual(g.getUnitAt(pos).getOwner(), RED)
-
-            # Test placement at non-placable tiles
-            for pos in [(1,0),(2,2)]:
-                self.assertEqual(g.getUnitAt(pos), False)
-
-            # Test for unit replacement
-            self.assertEqual(g.getUnitAt((3,2)).getOwner(), BLUE)
-
-            # Test placement outside of board
-            self.assertEqual(g.getUnitAt((-1,0)), False)
-            self.assertEqual(g.getUnitAt((0,-1)), False)
-            self.assertEqual(g.getUnitAt((17,0)), False)
-            self.assertEqual(g.getUnitAt((0,17)), False)
-
-            for pos in [(-1,0),(0,-1),(17,0),(0,17)]:
-                self.assertEqual(g.getUnitAt(pos), False)
-
-
+        g = Game()
+        city = g.getCityAt((1,1))
+        city.changeWorkforceFocus(PRODUCTION)
+        city.changeProduction(ARCHER)
         
-unittest.main()
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,1)).getOwner(), RED)
+        
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,1)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,2)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,2)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound() # Test invalid placement
+        self.assertEqual(g.getUnitAt((2,2)).getOwner(), None)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((2,0)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((1,0)).getOwner(), None)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,0)).getOwner(), RED)
+
+        g.endOfRound()
+        g.endOfRound()
+        self.assertEqual(g.getUnitAt((0,3)).getOwner(), RED)
+
+        # Test invalid placement
+        self.assertRaises(TypeError, g.getUnitAt((-1,0)))
+        self.assertRaises(TypeError, g.getUnitAt((0,-1)))
+        self.assertRaises(TypeError, g.getUnitAt((16,0)))
+        self.assertRaises(TypeError, g.getUnitAt((0,16)))
+
+
+class testBetaCiv(unittest.TestCase):
+    pass
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,6 +1,6 @@
 #!python2
 # By: Jarren, Stetson, and Luke
-# alphaciv.py
+# betaciv.py
 
 from __future__ import print_function
 from constants import *
@@ -8,7 +8,7 @@ from constants import *
 
 class Game:
     def __init__(self):
-        """A Game object manages a game of AlphaCiv, storing the board
+        """A Game object manages a game of BetaCiv, storing the board
         and its related commands."""
         
         self._turnCount = 0
@@ -17,20 +17,27 @@ class Game:
         self._hasMoved = []
 
         # Stores the board: a list containing tuples (tile, unit, city)
-        self._board = [[Tile(PLAINS), None, None]]*256
-        self._board[17] = [Tile(PLAINS), None, City(RED)]
-        self._board[65] = [Tile(PLAINS), None, City(BLUE)]
-        self._board[WORLDSIZE] = [Tile(OCEANS), None, None]
-        self._board[1] = [Tile(HILLS), None, None]
-        self._board[34] = [Tile(MOUNTAINS), None, None]
+        self._tileBoard = [[Tile(PLAINS) for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+        self._cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+        self._unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+
+        ### Place items on board
+        self._placeTileOnBoard((1,0), Tile(OCEANS))
+        self._placeTileOnBoard((0,1), Tile(HILLS))
+        self._placeTileOnBoard((2,2), Tile(MOUNTAINS))
+
+        self._placeCityOnBoard((1,1), City(RED))
+        self._placeCityOnBoard((4,1), City(BLUE))
+
+        self._placeUnitOnBoard((2,0), Unit(RED,ARCHER))
+        self._placeUnitOnBoard((3,2), Unit(BLUE,LEGION))
+        self._placeUnitOnBoard((4,3), Unit(RED,SETTLER))
+        ###
         
-        self._board[32] = [Tile(PLAINS), Unit(RED,ARCHER), None]
-        self._board[50] = [Tile(PLAINS), Unit(BLUE,LEGION), None]
-        self._board[67] = [Tile(PLAINS), Unit(RED,SETTLER), None]
-    
     def getTileAt(self, pos):
         """Return the tile object at 'pos' (row,col) on the board"""
-        tile = self._board[self._posToIndex(pos)][0]
+        row,col = pos
+        tile = self._tileBoard[row][col]
         
         if tile.getTileType() in [OCEANS, MOUNTAINS, PLAINS, HILLS]:
             return tile
@@ -41,21 +48,18 @@ class Game:
         """Return the unit object located at 'pos' (row,col) on the board"""
         row,col = pos
 
-        if -1 >= row >= WORLDSIZE or -1 >= col >= WORLDSIZE:
+        if (WORLDSIZE <= row or -1 >= row
+            or WORLDSIZE <= col or col <= -1):
             return False
         
-        unit = self._board[self._posToIndex(pos)][1]
-        
-        if unit == None:
-            return False
-        
-        return unit
+        return self._unitBoard[row][col]
     
     def getCityAt(self, pos):
         """Return the city object located at 'pos' (row,col) on the board"""
-        city = self._board[self._posToIndex(pos)][2]
+        row,col = pos
+        city = self._cityBoard[row][col]
         
-        if city == None:
+        if isinstance(city, noCity):
             return False
         
         return city
@@ -79,9 +83,8 @@ class Game:
         if not self._isMoveValid(posFrom, posTo):
             return False
 
-        self._board[self._posToIndex(posFrom)][1] = None
-        self._board[self._posToIndex(posTo)][1] = unit
-
+        self._placeUnitOnBoard(posTo, unit)
+        self._placeUnitOnBoard(posFrom, noUnit())
         self._hasMoved.append(posTo)
     
     def endOfTurn(self):
@@ -99,25 +102,15 @@ class Game:
         """Handles end-of-round events after each round"""
         self._age -= 100
 
-        for index, square in enumerate(self._board):
-            city = square[2]
-            
-            if city != None:
-                city.__nextRoundPrep(index)
-                
-                if city.getProduction() != None:
-                    if city.getProduction().getUnitType() == ARCHER and city.getProductionPoints() >= 10:
-                        city.__changeProductionPoints(ARCHER)
-                        self._placeUnitsInSpiral(Unit(city.getOwner(), ARCHER), index)
+        for row,x in enumerate(self._cityBoard):
+            for col,city in enumerate(x):
+                city.nextRoundPrep()
+                    
+                for i in range(city.buyNewUnit()):
+                    pos = self._spiralGenerator((row,col))
+                    unit = Unit(city.getOwner(), city.getProduction())
+                    self._placeUnitOnBoard(pos, unit)
 
-                    if city.getProduction().getUnitType() == LEGION and city.getProductionPoints() >= 15:
-                        city.__changeProductionPoints(LEGION)
-                        self._placeUnitsInSpiral(Unit(city.getOwner(), LEGION), index)
-
-                    if city.getProduction().getUnitType() == SETTLER and city.getProductionPoints() >= 30:
-                        city.__changeProductionPoints(SETTLER)
-                        self._placeUnitsInSpiral(Unit(city.getOwner(), SETTLER), index)
-                        
     def changeCityWorkforceAt(self, pos, balance):
         city = self.getCityAt(pos)
         city.changeWorkforce(balance)
@@ -127,8 +120,28 @@ class Game:
         city = self.getCityAt(pos)
         city.changeProduction(unit)
 
+    ### Placement helpers
+    def _placeTileOnBoard(self, pos, tile):
+        row,col = pos
+        
+        self._tileBoard[row][col] = tile
+        
+    def _placeCityOnBoard(self, pos, city):
+        row,col = pos
+            
+        self._cityBoard[row][col] = city
+        
+
+    def _placeUnitOnBoard(self, pos, unit):
+        row,col = pos
+        
+        self._unitBoard[row][col] = unit
+    ###
+    
     def _isMoveValid(self, posFrom, posTo):
         # Helper function that determines whether or not a move is valid
+        fromRow, fromCol = posFrom
+        toRow, toCol = posTo
         
         unit = self.getUnitAt(posFrom)
         mCount = unit.getMoveCount()
@@ -150,23 +163,23 @@ class Game:
             if self.getUnitAt(posTo).getOwner() == self.getPlayerInTurn():
                 return False
 
-        if any([abs(posFrom[0]-posTo[0]) > mCount,
-                abs(posFrom[1]-posTo[1] > mCount)]):
+        if any([abs(fromRow-toRow) > mCount,
+                abs(fromCol-toCol) > mCount]):
             return False
 
         return True
 
-    def _placeUnitsInSpiral(self, unit, cityIndex):
+    def _placeUnitsInSpiral(self, cityPos, unit, owner):
 
-        pos = self._spiralGenerator(cityIndex)
-        self._board[self._posToIndex(pos)][1] = unit
+        pos = self._spiralGenerator(cityPos)
+        self._placeUnitOnBoard(pos, unit, owner)
 
-    def _spiralGenerator(self, index):
+    def _spiralGenerator(self, pos):
         # Helper function that handles placing units at the end of the round
-        row,col = self._indexToPos(index)
+        row,col = pos
         
-        if self._isPlaceable((row,col)):
-            return (row,col)
+        if self._isPlaceable(pos):
+            return pos
 
         for rad in range(1, WORLDSIZE-1):
             # Go across the top
@@ -177,21 +190,21 @@ class Game:
                     return nPos
 
             # Go down right
-            for rowInc in range(-rad, rad):
+            for rowInc in range(-rad, rad+1):
                 nPos = (row+rowInc, col+rad)
                 
                 if self._isPlaceable(nPos):
                     return nPos
 
             # Go across the bottom
-            for colInc in range(rad):
+            for colInc in range(row-rad, row):
                 nPos = (row+rad, col-colInc)
                 
                 if self._isPlaceable(nPos):
                     return nPos
 
             # Go up left
-            for rowInc in range(rad, -rad):
+            for rowInc in range(-rad, rad+1):
                 nPos = (row-rowInc, col-rad)
 
                 if self._isPlaceable(nPos):
@@ -200,43 +213,38 @@ class Game:
     def _isPlaceable(self, pos):
         # Helper function that decides if a unit can be placed at 'pos'
         row,col = pos
-        index = self._posToIndex(pos)
-        
-        if index == None:
-            return False
-        
-        if -2 >= row >= WORLDSIZE or -2 >= col >= WORLDSIZE:
+    
+        if (WORLDSIZE <= row or -1 >= row
+            or WORLDSIZE <= col or col <= -1):
             return False
        
-        if self._board[index][1] != None:
+        if isinstance(self._unitBoard[row][col], noCity):
             return False
-        
-        if not self._board[index][0].isPassable():
+
+        if not self.getTileAt(pos).isPassable():
+            return False
+
+        if self.getUnitAt(pos).getOwner() == self._turn:
             return False
 
         return True
-    
-    def _posToIndex(self, pos):
-        # Helper function that translates 'pos' into an index of the game board
-        if pos == None:
-            return False
-        row, col = pos
 
-        if -1 >= row >= WORLDSIZE or -1 >= col >= WORLDSIZE:
-            return False
-        
-        return (row * WORLDSIZE) + col
-
-
-    def _indexToPos(self, index):
-        # Helper function that translates an index of the game board into a 'pos' tuple
-        return (index // WORLDSIZE, index % WORLDSIZE)
-    
 # --------------------------------------------------------
+class noUnit:
+
+    def __init__(self):
+        pass
+    def getOwner(self):
+        pass
+    def getUnitType(self):
+        pass
+    def getMoveCount(self):
+        pass
+# ---
 class Unit:
     
     def __init__(self, owner, unitType):
-        """A Unit is an AlphaCiv character belonging to 'owner' of given type 'unitType'.
+        """A Unit is an BetaCiv character belonging to 'owner' of given type 'unitType'.
         Valid types are: ARCHER, LEGION, and SETTLER"""
         
         self._type = unitType
@@ -296,17 +304,41 @@ class Tile:
         return self._production
 
 # --------------------------------------------------------
-class City():
+class noCity:
+    def __init__(self):
+        pass
+    def getSize(self):
+        pass
+    def getOwner(self):
+        pass
+    def getWorkforceFocus(self):
+        pass
+    def changeWorkforceFocus(self, focus):
+        pass
+    def getProduction(self):
+        return noUnit()
+    def changeProduction(self, unitType):
+        pass
+    def getFood(self):
+        pass
+    def buyNewUnit(self):
+        return -1
+    def nextRoundPrep(self):
+        pass
+    def __changeProductionPoints(self, unit):
+        pass
+# ---
+class City:
 
     def __init__(self, owner):
         """A City represents a city tile on the game board. It is the basis for
-        a player's progression in AlphaCiv."""
+        a player's progression in BetaCiv."""
         
         self._size = 1
         self._owner = owner
         self._workforceFocus = None
         self._food = 0
-        self._production = None
+        self._production = noUnit()
         self._productionPoints = 0
         
     def getSize(self):
@@ -328,17 +360,10 @@ class City():
             self._workforceFocus = focus
         else:
             return False
-
-    def getProductionPoints(self):
-        """Returns the number of production points the City currently has"""
-        return self._productionPoints
     
     def getProduction(self):
         """Returns the Unit that the City is currently producing"""
-        
-        if self._production == None:
-            return self._production
-        
+
         return self._production
 
     def changeProduction(self, unitType):
@@ -354,22 +379,19 @@ class City():
         """Returns the amount of food that the City has"""
         return self._food
     
-    def __nextRoundPrep(self, index):
+    def buyNewUnit(self):
+        # Subtracts production points based on which unit is being produced
+        unitCost = UNITCOSTS[self._production.getUnitType()]
+        
+        if self._productionPoints >= unitCost:
+            numOfUnits = self._productionPoints // unitCost
+            self._productionPoints -= unitCost*numOfUnits
+            return numOfUnits
+                    
+        return -1
+    
+    def nextRoundPrep(self):
         if self._workforceFocus == PRODUCTION:
             self._productionPoints += 6
-        
-    def __changeProductionPoints(self, unit):
-        # Subtracts production points based on which unit is being produced
-        if unit == ARCHER:
-            self._productionPoints -= 10
-
-        elif unit == LEGION:
-            self._productionPoints -= 15
-
-        elif unit == SETTLER:
-            self._productionPoints -= 30
-
-        else:
-            return
-
+            
 # --------------------------------------------------------
