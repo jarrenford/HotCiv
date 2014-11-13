@@ -3,12 +3,12 @@
 # test_betaciv.py
 
 import unittest
-from betaciv import *
+from hotciv import *
 
 class testCiv(unittest.TestCase):
 
     def setUp(self):
-        self.game = Game()
+        self.game = HotCiv(AlphaCivFactory)
 
     def test_RedGoesFirst(self):
         self.assertEqual(self.game.getPlayerInTurn(), RED)
@@ -53,18 +53,18 @@ class testCiv(unittest.TestCase):
         self.assertEqual(unit.getOwner(), RED)
 
     def test_GameStartsAt4000BC(self):
-        self.assertEqual(self.game.getAge(), 4000)
+        self.assertEqual(self.game.getAge(), -4000)
 
     def test_GameAges100YearsEachRound(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         
         g.endOfRound()
-        self.assertEqual(g.getAge(), 3900)
+        self.assertEqual(g.getAge(), -3900)
         g.endOfRound()
-        self.assertEqual(g.getAge(), 3800)
+        self.assertEqual(g.getAge(), -3800)
 
     def test_RedWinsIn3000BC(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         
         for i in range(10):
             g.endOfRound()
@@ -74,61 +74,60 @@ class testCiv(unittest.TestCase):
 # Movement Tests----------------------------------------------------------------
 
     def test_UnitsCantMoveOverMountain(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         g.endOfTurn()
         
         self.assertEqual(g.moveUnit((3,2), (2,2)), False)
 
     def test_UnitsCantMoveOverOceans(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
 
         self.assertEqual(g.moveUnit((2,0), (1,0)), False)
     
     def test_UnitsCantMoveOverCities(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
 
         self.assertEqual(g.moveUnit((2,0), (1,1)), False)
 
     def test_UnitsCantMoveTwiceInTurn(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         g.moveUnit((2,0), (2,1))
         self.assertEqual(g.moveUnit((2,1), (2,0)), False)
 
     def test_RedMovement(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         g.moveUnit((2,0), (2,1))
         
         self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
         
     def test_BlueMovement(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         g.endOfTurn()
         g.moveUnit((3,2), (3,3))
 
         self.assertEqual(g.getUnitAt((3,3)).getOwner(), BLUE)
     
     def test_RedCannotMoveBlueUnits(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         
         self.assertEqual(g.moveUnit((3,2), (3,3)), False)
     
     def test_BlueCannotMoveRedUnits(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         g.endOfTurn()
         
         self.assertEqual(g.moveUnit((2,0), (2,1)), False)
 
     def test_RedAttacksAndDestroysBlue(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
 
         g.moveUnit((4,3), (3,2))
         self.assertEqual(g.getUnitAt((3,2)).getOwner(), RED)
-        
     
 # City Tests--------------------------------------------------------------------
 
     def test_CityProduces6ProductionAtRoundEnd(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         city = g.getCityAt((1,1))
         city.changeWorkforceFocus(PRODUCTION)
         g.endOfRound()
@@ -139,7 +138,7 @@ class testCiv(unittest.TestCase):
         self.assertEqual(self.game.getCityAt((1,1)).getSize(), 1)
 
     def test_WorkforceFocus(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
 
         city = g.getCityAt((1,1))
         city.changeWorkforceFocus(FOOD)
@@ -148,7 +147,7 @@ class testCiv(unittest.TestCase):
         self.assertEqual(city.getWorkforceFocus(), PRODUCTION)
 
     def test_ChangeCityProduction(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         city = g.getCityAt((1,1))
         
         g.changeCityProductionAt((1,1), ARCHER)
@@ -161,7 +160,7 @@ class testCiv(unittest.TestCase):
         self.assertEqual(city.getProduction().getUnitType(), SETTLER)
 
     def test_UnitPlacementAroundCity(self):
-        g = Game()
+        g = HotCiv(AlphaCivFactory)
         city = g.getCityAt((1,1))
         city.changeWorkforceFocus(PRODUCTION)
         city.changeProduction(ARCHER)
@@ -214,7 +213,47 @@ class testCiv(unittest.TestCase):
 
 
 class testBetaCiv(unittest.TestCase):
-    pass
+
+    def test_Aging(self):
+        g = HotCiv(BetaCivFactory)
+
+        self.assertEqual(g.getAge(), -4000)
+        
+        for i in range(39):
+            g.endOfRound()
+
+        self.assertEqual(g.getAge(), -100)
+
+        g.endOfRound()
+        self.assertEqual(g.getAge(), -1)
+
+        g.endOfRound()
+        self.assertEqual(g.getAge(), 1)
+
+        g.endOfRound()
+        self.assertEqual(g.getAge(), 50)
+
+        for i in range(34):
+            g.endOfRound()
+        self.assertEqual(g.getAge(), 1750)
+
+        for i in range(6):
+            g.endOfRound()
+        self.assertEqual(g.getAge(), 1900)
+
+        for i in range(14):
+            g.endOfRound()
+        self.assertEqual(g.getAge(), 1970)
+
+        for i in range(30):
+            g.endOfRound()
+        self.assertEqual(g.getAge(), 2000)
+
+    def test_Winning(self):
+        g = HotCiv(BetaCivFactory)
+        g.placeCityAt((4,1), City(RED))
+        
+        self.assertEqual(g.getWinner(), RED)
 
 if __name__ == "__main__":
     unittest.main()
