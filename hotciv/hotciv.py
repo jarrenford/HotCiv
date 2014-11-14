@@ -12,32 +12,16 @@ class HotCiv:
 
         self._version = version
         self._winner = version().createWinner()
+        self._unitCreateStrategy = version().createUnit
         self._ageStrategy = version().createAging()
         self._turnCount = 0
         self._turn = RED
         self._age = -4000
         self._hasMoved = []
         
-        
         # Stores the board: a list containing tuples (tile, unit, city)
-        self._tileBoard = [[Tile(PLAINS) for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
-        self._cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
-        self._unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+        self._tileBoard, self._cityBoard, self._unitBoard = version().createMap(self._unitCreateStrategy)
 
-        ### Place items on board
-        self.placeTileAt((1,0), Tile(OCEANS))
-        self.placeTileAt((0,1), Tile(HILLS))
-        self.placeTileAt((2,2), Tile(MOUNTAINS))
-
-        self.placeCityAt((1,1), City(RED))
-        self.placeCityAt((4,1), City(BLUE))
-
-        self.placeUnitAt((2,0), Unit(RED,ARCHER))
-        self.placeUnitAt((3,2), Unit(BLUE,LEGION))
-        self.placeUnitAt((4,3), Unit(RED,SETTLER))
-        ###
-
-        
     def getTileAt(self, pos):
         """Return the tile object at 'pos' (row,col) on the board"""
         row,col = pos
@@ -88,10 +72,25 @@ class HotCiv:
         if not self._isMoveValid(posFrom, posTo):
             return False
 
+        if isinstance(unit, ActiveUnit) and unit.isLocked():
+            return False
+
         self.placeUnitAt(posTo, unit)
         self.placeUnitAt(posFrom, noUnit())
         self._hasMoved.append(posTo)
-    
+
+    def performUnitAction(self, pos):
+        unit = self.getUnitAt(pos)
+        response = unit.performAction()
+
+        if isinstance(unit, noUnit):
+            return
+        
+        # Performs building for settlers
+        if response == 'buildCity':
+            self.placeCityAt(pos, City(unit.getOwner()))
+            self.placeUnitAt(pos, noUnit())
+            
     def endOfTurn(self):
         """Handles events at end of player's turn"""
         self._turnCount += 1
@@ -116,7 +115,7 @@ class HotCiv:
                     
                 for i in range(city.buyNewUnit()):
                     pos = self._spiralGenerator((row,col))
-                    unit = Unit(city.getOwner(), city.getProduction())
+                    unit = self._unitCreateStrategy(city.getOwner(), city.getProduction())
                     self.placeUnitAt(pos, unit)
 
     def changeCityWorkforceAt(self, pos, balance):
@@ -244,13 +243,17 @@ class noUnit:
         pass
     def getOwner(self):
         pass
+    def getAttack(self):
+        pass
+    def getDefense(self):
+        pass
     def getUnitType(self):
         pass
     def getMoveCount(self):
         pass
 
 # ---
-class Unit:
+class PassiveUnit:
     
     def __init__(self, owner, unitType):
         """A Unit is an HotCiv character belonging to 'owner' of given type 'unitType'.
@@ -259,8 +262,6 @@ class Unit:
         self._type = unitType
         self._owner = owner
         self._moveCount = 1
-        UNITACTIONS = {ARCHER:fortify, LEGION:noAction, SETTLER:buildCity, None: noAction}
-        self.action = UNITACTIONS[unitType]
 
     def getOwner(self):
         """Returns the Unit's owner"""
@@ -274,12 +275,70 @@ class Unit:
         """Returns how many moves the Unit has per turn"""
         return self._moveCount
 
+# --- 
+class ActiveUnit:
+    
+    def __init__(self, owner, unitType):
+        """A Unit is an HotCiv character belonging to 'owner' of given type 'unitType'.
+        Valid types are: ARCHER, LEGION, and SETTLER"""
+        
+        self._type = unitType
+        self._owner = owner
+        self._moveCount = 1
+        self._isLocked = False
+        self._attack = UNITATTACK[unitType]
+        self._defense = UNITDEFENSE[unitType]
+        
+        UNITACTIONS = {ARCHER:self.fortify, LEGION:self.noAction,
+                       SETTLER:self.buildCity, None: self.noAction}
+        self._action = UNITACTIONS[unitType]
+
+    def getOwner(self):
+        """Returns the Unit's owner"""
+        return self._owner
+    
+    def getUnitType(self):
+        """Returns the Unit's type"""
+        return self._type
+    
+    def getMoveCount(self):
+        """Returns how many moves the Unit has per turn"""
+        return self._moveCount
+
+    def getAttack(self):
+        return self._attack
+
+    def getDefense(self):
+        return self._defense
+    
     def performAction(self):
 
-        self.action()
+        return self._action()
 
     def fortify(self):
 
+        if self._defense == 6:
+            self._defense = 3
+            
+        else:
+            self._defense = 6
+
+        if self._isLocked:
+            self._isLocked = False
+        else:
+            self._isLocked = True
+            
+        return 'fortify'
+
+    def buildCity(self):
+        return 'buildCity'
+
+    def noAction(self):
+        return 'noAction'
+
+    def isLocked(self):
+        return self._isLocked
+    
 # --------------------------------------------------------
 class Tile:
 
@@ -345,6 +404,7 @@ class noCity:
         pass
     def __changeProductionPoints(self, unit):
         pass
+    
 # ---
 class City:
 
@@ -392,7 +452,7 @@ class City:
         on PRODUCTION"""
         
         if unitType in [ARCHER, LEGION, SETTLER]:
-            self._production = Unit(self._owner, unitType)
+            self._production = unitType ###Unit(self._owner, unitType)
         else:
             return False
 
@@ -403,7 +463,11 @@ class City:
     
     def buyNewUnit(self):
         # Subtracts production points based on which unit is being produced
-        unitCost = UNITCOSTS[self._production.getUnitType()]
+        
+        if isinstance(self._production, noUnit):
+            return -1
+        
+        unitCost = UNITCOSTS[self._production]
         
         if self._productionPoints >= unitCost and unitCost != -1:
             numOfUnits = self._productionPoints // unitCost
@@ -423,8 +487,8 @@ def RedWinnerStrategy(year, cities):
         return RED
 
     return False
-# ----
 
+# ----
 def ConquerAllCitiesStrategy(year, cities):
 
     teams = []
@@ -444,13 +508,13 @@ def ConquerAllCitiesStrategy(year, cities):
         prev = team
     
     return prev
-# ----
 
+# ----
 def LinearAgingStrategy(age):
     
     return age + 100
-# ----
 
+# ----
 def VaryingAgingStrategy(age):
     # Maybe make this a little nicer?
 
@@ -478,6 +542,63 @@ def VaryingAgingStrategy(age):
     return age + 1
 
 # --------------------------------------------------------
+def SimpleMap(unitCreateStrategy):
+    tileBoard = [[Tile(PLAINS) for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+    cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+    unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+
+    ### Place items on board
+    tileBoard[1][0] = Tile(OCEANS)
+    tileBoard[0][1] = Tile(HILLS)
+    tileBoard[2][2] = Tile(MOUNTAINS)
+
+    cityBoard[1][1] = City(RED)
+    cityBoard[4][1] = City(BLUE)
+
+    unitBoard[2][0] = unitCreateStrategy(RED,ARCHER)
+    unitBoard[3][2] = unitCreateStrategy(BLUE,LEGION)
+    unitBoard[4][3] = unitCreateStrategy(RED,SETTLER)
+    ###
+
+    return tileBoard, cityBoard, unitBoard
+
+# --------------------------------------------------------
+def MapFromFile():
+
+    tileBoard = [[]*WORLDSIZE]*WORLDSIZE
+    cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+    unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+    
+    spaces = {'p':Tile(PLAINS), 'o':Tile(OCEANS), 'h':Tile(HILLS), 'm':Tile(MOUNTAINS),
+              'r':City(RED), 'b':City(BLUE)}
+    
+    with open('map.txt', 'r') as f:
+        pos = 0
+        
+        for x,line in enumerate(f):
+            for char in line.rstrip():
+                if char != " ":
+                    try:
+                        tileBoard[x].append(spaces[char.lower()])
+
+                    # Invalid characters are replaced by PLAINS
+                    except KeyError:
+                        tileBoard[x].append(spaces['p'])
+
+                    pos += 1
+                    
+                if char in ['r','b']:
+                    tileBoard[x].append(spaces['p'])
+                    cityBoard[x].append(spaces[char.lower()])
+                    pos += 1
+
+    for i in range(16):
+        print(tileBoard[0][i].getTileType())
+        #print(tileBoard[15][i].getTileType())
+        
+    return tileBoard, cityBoard, unitBoard
+
+# --------------------------------------------------------
 class AlphaCivFactory:
     
     def createWinner(self):
@@ -487,8 +608,11 @@ class AlphaCivFactory:
         return LinearAgingStrategy
 
     def createUnit(self, owner, unitType):
-        return Unit(owner, unitType, BasicMovementAndBattle)
+        return PassiveUnit(owner, unitType)
 
+    def createMap(self, unitCreateStrategy):
+        return SimpleMap(unitCreateStrategy)
+    
 # --------------------------------------------------------
 class BetaCivFactory:
     
@@ -499,7 +623,10 @@ class BetaCivFactory:
         return VaryingAgingStrategy
 
     def createUnit(self, owner, unitType):
-        return Unit(owner, unitType, BasicMovementAndBattle)
+        return PassiveUnit(owner, unitType)
+
+    def createMap(self, unitCreateStrategy):
+        return SimpleMap(unitCreateStrategy)
     
 # --------------------------------------------------------
 class GammaCivFactory:
@@ -511,6 +638,23 @@ class GammaCivFactory:
         return LinearAgingStrategy
 
     def createUnit(self, owner, unitType):
-        return Unit(owner, SettlersBuildAndArchersFortify)
-# --------------------------------------------------------
+        return ActiveUnit(owner, unitType)
 
+    def createMap(self, unitCreateStrategy):
+        return SimpleMap(unitCreateStrategy)
+    
+# --------------------------------------------------------
+class DeltaCivFactory:
+
+    def createWinner(self):
+        return RedWinnerStrategy
+
+    def createAging(self):
+        return LinearAgingStrategy
+
+    def createUnit(self, owner, unitType):
+        return PassiveUnit(owner, unitType)
+
+    def createMap(self, unitCreateStrategy):
+        return MapFromFile()
+    

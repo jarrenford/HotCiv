@@ -151,13 +151,13 @@ class testCiv(unittest.TestCase):
         city = g.getCityAt((1,1))
         
         g.changeCityProductionAt((1,1), ARCHER)
-        self.assertEqual(city.getProduction().getUnitType(), ARCHER)
+        self.assertEqual(city.getProduction(), ARCHER)
         
         g.changeCityProductionAt((1,1), LEGION)
-        self.assertEqual(city.getProduction().getUnitType(), LEGION)
+        self.assertEqual(city.getProduction(), LEGION)
         
         g.changeCityProductionAt((1,1), SETTLER)
-        self.assertEqual(city.getProduction().getUnitType(), SETTLER)
+        self.assertEqual(city.getProduction(), SETTLER)
 
     def test_UnitPlacementAroundCity(self):
         g = HotCiv(AlphaCivFactory)
@@ -255,5 +255,72 @@ class testBetaCiv(unittest.TestCase):
         
         self.assertEqual(g.getWinner(), RED)
 
+class testGammaCiv(unittest.TestCase):
+    
+    def test_ArcherFortify(self):
+        g = HotCiv(GammaCivFactory)
+
+        unit = g.getUnitAt((2,0))
+        g.performUnitAction((2,0))
+        
+        unit = g.getUnitAt((2,0))
+        self.assertEqual(unit.getDefense(), 6)
+
+        # Test movement locking
+        self.assertFalse(g.moveUnit((2,0),(2,1)))
+        self.assertTrue(isinstance(g.getUnitAt((2,1)), noUnit))
+
+        # Unfortify unit
+        unit.performAction()
+        self.assertEqual(unit.getDefense(), 3)
+        
+        g.moveUnit((2,0),(2,1))
+        self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
+
+        
+
+    def test_SettlerBuild(self):
+        g = HotCiv(GammaCivFactory)
+
+        unit = g.getUnitAt((4,3))
+        g.performUnitAction((4,3))
+
+        unit = g.getUnitAt((4,3))
+        self.assertTrue(isinstance(unit, noUnit))
+
+        city = g.getCityAt((4,3))
+        self.assertTrue(isinstance(city, City))
+        self.assertEqual(city.getOwner(), RED)
+        
+class testDeltaCiv(unittest.TestCase):
+
+    def testMapFromFile(self):
+        g = HotCiv(DeltaCivFactory)
+
+        self.assertEqual(g.getTileAt((0,0)).getTileType(), OCEANS)
+        self.assertEqual(g.getTileAt((0,3)).getTileType(), PLAINS)
+        self.assertEqual(g.getTileAt((0,5)).getTileType(), MOUNTAINS)
+        
+        self.assertEqual(g.getTileAt((1,1)).getTileType(), OCEANS)
+        self.assertEqual(g.getTileAt((1,3)).getTileType(), HILLS)
+        self.assertEqual(g.getTileAt((1,9)).getTileType(), FORESTS)
+
+        self.assertEqual(g.getTileAt((2,0)).getTileType(), OCEANS)
+        self.assertEqual(g.getTileAt((2,1)).getTileType(), PLAINS)
+        self.assertEqual(g.getTileAt((2,6)).getTileType(), MOUNTAINS)
+
+        self.assertEqual(g.getTileAt((3,0)).getTileType(), OCEANS)
+        self.assertEqual(g.getTileAt((3,1)).getTileType(), PLAINS)
+        self.assertEqual(g.getTileAt((3,3)).getTileType(), MOUNTAINS)
+
+        self.assertEqual(g.getTileAt((4,0)).getTileType(), OCEANS)
+        self.assertEqual(g.getTileAt((4,3)).getTileType(), PLAINS)
+        self.assertEqual(g.getCityAt((4,5)).getOwner(), BLUE)
+        self.assertEqual(g.getTileAt((4,8)).getTileType(), HILLS)
+
+        self.assertEqual(g.getCityAt((9,12)).getOwner(), RED)
+
+        self.assertEqual(g.getTileAt((15,15)).getTileType(), OCEANS)
+        
 if __name__ == "__main__":
     unittest.main()
