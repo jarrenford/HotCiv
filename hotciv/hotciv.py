@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 from constants import *
+from random import randint
 
 class HotCiv:
     def __init__(self, version):
@@ -12,22 +13,26 @@ class HotCiv:
 
         self._version = version
         self._winner = version().createWinner()
-        self._unitCreateStrategy = version().createUnit
+        self._unitCreateStrategy = version().createUnit()
         self._ageStrategy = version().createAging()
         self._turnCount = 0
         self._turn = RED
         self._age = -4000
+        self._roundCount = 0
         self._hasMoved = []
+        self._successfulAttacks = {RED:0, BLUE:0}
         
         # Stores the board: a list containing tuples (tile, unit, city)
-        self._tileBoard, self._cityBoard, self._unitBoard = version().createMap(self._unitCreateStrategy)
+        maps = version().createMap()
+        self._tileBoard, self._cityBoard, self._unitBoard =\
+                         maps(self._unitCreateStrategy)
 
     def getTileAt(self, pos):
         """Return the tile object at 'pos' (row,col) on the board"""
         row,col = pos
         tile = self._tileBoard[row][col]
         
-        if tile.getTileType() in [OCEANS, MOUNTAINS, PLAINS, HILLS]:
+        if tile.getTileType() in [OCEANS, MOUNTAINS, PLAINS, HILLS, FORESTS]:
             return tile
         else:
             return False
@@ -62,24 +67,81 @@ class HotCiv:
 
     def getWinner(self):
         """Returns the winner"""
-
-        return self._winner(self._age, self._cityBoard)
-    
-    def moveUnit(self, posFrom, posTo):
-        """Moves a unit from 'posFrom' (row,col) to 'posTo' (row,col)"""
-        unit = self.getUnitAt(posFrom)
         
+        return self._winner(self._age, self._cityBoard,
+                            self._successfulAttacks, self._roundCount)
+    
+    def moveUnit(self, posFrom, posTo, random=True):
+        """Moves a unit from 'posFrom' (row,col) to 'posTo' (row,col)"""
+        unitFrom = self.getUnitAt(posFrom)
+        unitTo = self.getUnitAt(posTo)
+        unitAttackDefenseStrategy = self._version().createUnitAttackDefenseStrategy()
+
+        attackingAdjacentUnitCount = self.getAdjacentUnitCount(posFrom)
+        defendingAdjacentUnitCount = self.getAdjacentUnitCount(posTo)
+
+        if random:
+            die1 = randint(1,6)
+            die2 = randint(1,6)
+        else:
+            die1 = 1
+            die2 = 1
+
         if not self._isMoveValid(posFrom, posTo):
             return False
-
-        if isinstance(unit, ActiveUnit) and unit.isLocked():
+        
+        if isinstance(unitFrom, ActiveUnit) and unitFrom.isLocked():
             return False
+          
+        if not isinstance(unitTo, noUnit) and unitTo.getOwner() !=\
+           unitFrom.getOwner():
+            
+            if not isinstance(self.getCityAt(posTo), noCity):
+                terrain = "city"
+            else:
+                terrain = self.getTileAt(posTo).getTileType()
 
-        self.placeUnitAt(posTo, unit)
+            if not unitAttackDefenseStrategy(unitFrom, unitTo,
+                                             terrain,
+                                             attackingAdjacentUnitCount,
+                                             defendingAdjacentUnitCount,
+                                             die1, die2):
+    
+                self.placeUnitAt(posFrom, noUnit())
+                return
+        
+        if isinstance(self.getCityAt(posTo), City) and\
+           self.getCityAt(posTo).getOwner() != unitFrom.getOwner():
+            self.getCityAt(posTo).conquerCity()
+            
+        # Was successful attack
+        self._incrementSuccessfulAttacks(unitFrom.getOwner())
+        self.placeUnitAt(posTo, unitFrom)   
         self.placeUnitAt(posFrom, noUnit())
         self._hasMoved.append(posTo)
+        
+    def getAdjacentUnitCount(self, pos):
+        """Gets the number of Units that are touching, but not on, 'pos'"""
+        row,col = pos
+        total = 0
 
+        posList = [(row-1,col), (row-1,col+1), (row,col+1), (row+1,col+1),
+         (row+1,col), (row+1,col-1), (row,col-1), (row-1,col-1)]
+
+        for loc in posList:
+            if not self.getUnitAt(loc):
+                pass
+                
+            elif self.getUnitAt(loc).getOwner() == self.getUnitAt(pos).getOwner():
+                total += 1
+
+        return total
+        
     def performUnitAction(self, pos):
+        """Tells unit at 'pos' to perform its action:
+        Archers - Fortify (increase defense by 3, but cannot move)
+        Settlers - Build city"""
+        
         unit = self.getUnitAt(pos)
         response = unit.performAction()
 
@@ -105,9 +167,11 @@ class HotCiv:
     def endOfRound(self):
         """Handles end-of-round events after each round"""
         self._age = self._ageStrategy(self._age)
-        
-        if self.getWinner() != False:
-            return self.getWinner()
+        self._roundCount += 1
+
+        winner = self.getWinner()
+        if winner in [RED, BLUE]:
+            return winner
         
         for row,x in enumerate(self._cityBoard):
             for col,city in enumerate(x):
@@ -119,6 +183,7 @@ class HotCiv:
                     self.placeUnitAt(pos, unit)
 
     def changeCityWorkforceAt(self, pos, balance):
+        """Changes the workforce of city at 'pos' to 'balance'"""
         city = self.getCityAt(pos)
         city.changeWorkforce(balance)
     
@@ -127,19 +192,22 @@ class HotCiv:
         city = self.getCityAt(pos)
         city.changeProduction(unit)
 
-    ### Placement helpers
+    ### Placement methods
     def placeTileAt(self, pos, tile):
+        """Places a tile on the board"""
         row,col = pos
         
         self._tileBoard[row][col] = tile
         
     def placeCityAt(self, pos, city):
+        """Places a city on the board"""
         row,col = pos
             
         self._cityBoard[row][col] = city
         
 
     def placeUnitAt(self, pos, unit):
+        """Places a unit on the board"""
         row,col = pos
         
         self._unitBoard[row][col] = unit
@@ -153,9 +221,6 @@ class HotCiv:
         unit = self.getUnitAt(posFrom)
         mCount = unit.getMoveCount()
         toTile = self.getTileAt(posTo)
-
-        if self.getCityAt(posTo) != False:
-            return False
         
         if posFrom in self._hasMoved:
             return False
@@ -177,7 +242,7 @@ class HotCiv:
         return True
 
     def _placeUnitsInSpiral(self, cityPos, unit, owner):
-
+        # Helper function that puts units on the board
         pos = self._spiralGenerator(cityPos)
         self.placeUnitAt(pos, unit, owner)
 
@@ -235,17 +300,32 @@ class HotCiv:
             return False
 
         return True
+
+    def _incrementSuccessfulAttacks(self, team):
+        # Helper function that handles counting successful attacks for
+        # both players
+        
+        if self._version == ZetaCivFactory and self._roundCount >= 20:
+            self._successfulAttacks[team] += 1
+            return
+
+        if self._version == ZetaCivFactory and self._roundCount < 20:
+            return
+
+        self._successfulAttacks[team] += 1
+            
     
 # --------------------------------------------------------
 class noUnit:
-
+    
     def __init__(self):
+        """Dummy class for filling the unit board"""
         pass
     def getOwner(self):
         pass
-    def getAttack(self):
+    def getAttackStrength(self):
         pass
-    def getDefense(self):
+    def getDefenseStrength(self):
         pass
     def getUnitType(self):
         pass
@@ -253,15 +333,18 @@ class noUnit:
         pass
 
 # ---
-class PassiveUnit:
+class NoActionUnit:
     
     def __init__(self, owner, unitType):
-        """A Unit is an HotCiv character belonging to 'owner' of given type 'unitType'.
-        Valid types are: ARCHER, LEGION, and SETTLER"""
+        """A NoActionUnit is an HotCiv character belonging to 'owner' of given type 'unitType'.
+        Valid types are: ARCHER, LEGION, and SETTLER. NoActionUnits are different from ActiveUnits
+        in that they cannot perform 'actions,' such as Archer fortification."""
         
         self._type = unitType
         self._owner = owner
         self._moveCount = 1
+        self._attack = UNITATTACK[unitType]
+        self._defense = UNITDEFENSE[unitType]
 
     def getOwner(self):
         """Returns the Unit's owner"""
@@ -275,12 +358,19 @@ class PassiveUnit:
         """Returns how many moves the Unit has per turn"""
         return self._moveCount
 
+    def getAttackStrength(self):
+        return self._attack
+
+    def getDefenseStrength(self):
+        return self._defense
+
 # --- 
 class ActiveUnit:
     
     def __init__(self, owner, unitType):
-        """A Unit is an HotCiv character belonging to 'owner' of given type 'unitType'.
-        Valid types are: ARCHER, LEGION, and SETTLER"""
+        """An ActiveUnit is an HotCiv character belonging to 'owner' of given type 'unitType'.
+        Valid types are: ARCHER, LEGION, and SETTLER. ActiveUnits are different from NoActionUnits
+        in that they can perform 'actions,' such as Archer fortification."""
         
         self._type = unitType
         self._owner = owner
@@ -305,10 +395,10 @@ class ActiveUnit:
         """Returns how many moves the Unit has per turn"""
         return self._moveCount
 
-    def getAttack(self):
+    def getAttackStrength(self):
         return self._attack
 
-    def getDefense(self):
+    def getDefenseStrength(self):
         return self._defense
     
     def performAction(self):
@@ -383,6 +473,7 @@ class Tile:
 
 class noCity:
     def __init__(self):
+        """Dummy city used to fill the city board"""
         pass
     def getSize(self):
         pass
@@ -456,7 +547,6 @@ class City:
         else:
             return False
 
-
     def getFood(self):
         """Returns the amount of food that the City has"""
         return self._food
@@ -475,21 +565,29 @@ class City:
             return numOfUnits
                     
         return -1
-    
+
+    def conquerCity(self):
+        if self._owner == RED:
+            self._owner = BLUE
+        else:
+            self._owner = RED
+            
     def nextRoundPrep(self):
         if self._workforceFocus == PRODUCTION:
             self._productionPoints += 6
             
 # --------------------------------------------------------
-def RedWinnerStrategy(year, cities):
+def RedWinnerStrategy(year, cities, count, rounds):
+    # Red wins at 3000BC
 
     if year == -3000:
         return RED
 
     return False
 
-# ----
-def ConquerAllCitiesStrategy(year, cities):
+# --------------------------------------------------------
+def ConquerAllCitiesStrategy(year, cities, count, rounds):
+    # If all cities on the map are of one team, that team wins
 
     teams = []
     
@@ -506,17 +604,35 @@ def ConquerAllCitiesStrategy(year, cities):
             return False
         
         prev = team
-    
+
     return prev
 
-# ----
+# --------------------------------------------------------
+def ThreeSuccessfulAttacksWinsStrategy(year, cities, count, rounds):
+    # After three successful attacks, the team that has those attacks wins
+    redWins, blueWins = count[RED], count[BLUE]
+    
+    if redWins >= 3:
+        return RED
+    if blueWins >= 3:
+        return BLUE
+    return False
+
+# --------------------------------------------------------
+def SuddenDeathWinsStrategy(year, cities, count, rounds):
+    # Up until 20 rounds, all cities must be conquered to win. After that,
+    # when three units are killed the opposite team wins
+    if rounds < 20:
+        return ConquerAllCitiesStrategy(year, cities, count, rounds)
+    return ThreeSuccessfulAttacksWinsStrategy(year, cities, count, rounds)
+
+# --------------------------------------------------------
 def LinearAgingStrategy(age):
     
     return age + 100
 
-# ----
+# --------------------------------------------------------
 def VaryingAgingStrategy(age):
-    # Maybe make this a little nicer?
 
     if -4000 <= age < -100:
         return age + 100
@@ -543,6 +659,8 @@ def VaryingAgingStrategy(age):
 
 # --------------------------------------------------------
 def SimpleMap(unitCreateStrategy):
+    # Manually generated map, following AlphaCiv format
+    
     tileBoard = [[Tile(PLAINS) for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
     cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
     unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
@@ -563,14 +681,18 @@ def SimpleMap(unitCreateStrategy):
     return tileBoard, cityBoard, unitBoard
 
 # --------------------------------------------------------
-def MapFromFile():
+def MapFromFile(unitCreateStrategy):
+    """Creates the map from a file called 'map.txt'. The file must be 16 rows of 16
+    characters, excluding spaces.
+    'p':plains, 'o':oceans, 'h':hills, 'm':mountains,
+    'f':forests, 'r':red city, 'b':blue city"""
 
-    tileBoard = [[]*WORLDSIZE]*WORLDSIZE
+    tileBoard = [[] for i in range(WORLDSIZE)]
     cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
     unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
     
     spaces = {'p':Tile(PLAINS), 'o':Tile(OCEANS), 'h':Tile(HILLS), 'm':Tile(MOUNTAINS),
-              'r':City(RED), 'b':City(BLUE)}
+              'f':Tile(FORESTS), 'r':City(RED), 'b':City(BLUE)}
     
     with open('map.txt', 'r') as f:
         pos = 0
@@ -578,25 +700,50 @@ def MapFromFile():
         for x,line in enumerate(f):
             for char in line.rstrip():
                 if char != " ":
-                    try:
-                        tileBoard[x].append(spaces[char.lower()])
-
-                    # Invalid characters are replaced by PLAINS
-                    except KeyError:
+                    if char.lower() in ['r','b']:
                         tileBoard[x].append(spaces['p'])
+                        cityBoard[x][pos%16] = spaces[char.lower()]
+                        pos += 1
+                        
+                    else:
+                        try:
+                            tileBoard[x].append(spaces[char.lower()])
 
-                    pos += 1
-                    
-                if char in ['r','b']:
-                    tileBoard[x].append(spaces['p'])
-                    cityBoard[x].append(spaces[char.lower()])
-                    pos += 1
+                        # Invalid characters are replaced by PLAINS
+                        except KeyError:
+                            tileBoard[x].append(spaces['p'])
 
-    for i in range(16):
-        print(tileBoard[0][i].getTileType())
-        #print(tileBoard[15][i].getTileType())
-        
-    return tileBoard, cityBoard, unitBoard
+                        pos += 1
+                        
+        return tileBoard, cityBoard, unitBoard
+
+# --------------------------------------------------------
+def AttackerAlwaysWinsStrategy(attackingUnit, defendingUnit, battleground,
+                               attackingAdjacentUnitCount,
+                               defendingAdjacentUnitcount,
+                               die1, die2):
+    
+    return True
+
+# --------------------------------------------------------
+def CompareAttackDefenseStrategy(attackingUnit, defendingUnit, battleground,
+                                 attackingAdjacentUnitCount,
+                                 defendingAdjacentUnitCount,
+                                 die1, die2):
+    # Winning in battle is determined by comparing attack and defense of the two
+    # units, the terrain, and a factor of randomness
+
+    terrainFactor = {PLAINS:1, HILLS:2, FORESTS:2, "city":3}
+    attackStrength = (attackingUnit.getAttackStrength() +\
+                      attackingAdjacentUnitCount) * terrainFactor[battleground]
+    defenseStrength = (defendingUnit.getDefenseStrength() +\
+                       defendingAdjacentUnitCount) * terrainFactor[battleground]
+
+    # In Risk, in the event of equality, defense wins
+    if attackStrength == defenseStrength:
+        return False
+    
+    return attackStrength * die1 > defenseStrength * die2
 
 # --------------------------------------------------------
 class AlphaCivFactory:
@@ -607,11 +754,14 @@ class AlphaCivFactory:
     def createAging(self):
         return LinearAgingStrategy
 
-    def createUnit(self, owner, unitType):
-        return PassiveUnit(owner, unitType)
+    def createUnit(self):
+        return NoActionUnit
 
-    def createMap(self, unitCreateStrategy):
-        return SimpleMap(unitCreateStrategy)
+    def createMap(self):
+        return SimpleMap
+
+    def createUnitAttackDefenseStrategy(self):
+        return AttackerAlwaysWinsStrategy
     
 # --------------------------------------------------------
 class BetaCivFactory:
@@ -622,11 +772,14 @@ class BetaCivFactory:
     def createAging(self):
         return VaryingAgingStrategy
 
-    def createUnit(self, owner, unitType):
-        return PassiveUnit(owner, unitType)
+    def createUnit(self):
+        return NoActionUnit
 
-    def createMap(self, unitCreateStrategy):
-        return SimpleMap(unitCreateStrategy)
+    def createMap(self):
+        return SimpleMap
+
+    def createUnitAttackDefenseStrategy(self):
+        return AttackerAlwaysWinsStrategy
     
 # --------------------------------------------------------
 class GammaCivFactory:
@@ -637,11 +790,14 @@ class GammaCivFactory:
     def createAging(self):
         return LinearAgingStrategy
 
-    def createUnit(self, owner, unitType):
-        return ActiveUnit(owner, unitType)
+    def createUnit(self):
+        return ActiveUnit
 
-    def createMap(self, unitCreateStrategy):
-        return SimpleMap(unitCreateStrategy)
+    def createMap(self):
+        return SimpleMap
+    
+    def createUnitAttackDefenseStrategy(self):
+        return AttackerAlwaysWinsStrategy
     
 # --------------------------------------------------------
 class DeltaCivFactory:
@@ -652,9 +808,47 @@ class DeltaCivFactory:
     def createAging(self):
         return LinearAgingStrategy
 
-    def createUnit(self, owner, unitType):
-        return PassiveUnit(owner, unitType)
+    def createUnit(self):
+        return NoActionUnit
 
-    def createMap(self, unitCreateStrategy):
-        return MapFromFile()
+    def createMap(self):
+        return MapFromFile
     
+    def createUnitAttackDefenseStrategy(self):
+        return AttackerAlwaysWinsStrategy
+    
+# --------------------------------------------------------
+class EpsilonCivFactory:
+
+    def createWinner(self):
+        return ThreeSuccessfulAttacksWinsStrategy
+
+    def createAging(self):
+        return LinearAgingStrategy
+
+    def createUnit(self):
+        return NoActionUnit
+
+    def createMap(self):
+        return SimpleMap
+
+    def createUnitAttackDefenseStrategy(self):
+        return CompareAttackDefenseStrategy
+
+# --------------------------------------------------------
+class ZetaCivFactory:
+
+    def createWinner(self):
+        return SuddenDeathWinsStrategy
+
+    def createAging(self):
+        return LinearAgingStrategy
+
+    def createUnit(self):
+        return NoActionUnit
+
+    def createMap(self):
+        return SimpleMap
+
+    def createUnitAttackDefenseStrategy(self):
+        return AttackerAlwaysWinsStrategy

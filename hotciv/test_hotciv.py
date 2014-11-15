@@ -84,11 +84,6 @@ class testCiv(unittest.TestCase):
 
         self.assertEqual(g.moveUnit((2,0), (1,0)), False)
     
-    def test_UnitsCantMoveOverCities(self):
-        g = HotCiv(AlphaCivFactory)
-
-        self.assertEqual(g.moveUnit((2,0), (1,1)), False)
-
     def test_UnitsCantMoveTwiceInTurn(self):
         g = HotCiv(AlphaCivFactory)
         g.moveUnit((2,0), (2,1))
@@ -264,7 +259,7 @@ class testGammaCiv(unittest.TestCase):
         g.performUnitAction((2,0))
         
         unit = g.getUnitAt((2,0))
-        self.assertEqual(unit.getDefense(), 6)
+        self.assertEqual(unit.getDefenseStrength(), 6)
 
         # Test movement locking
         self.assertFalse(g.moveUnit((2,0),(2,1)))
@@ -272,7 +267,7 @@ class testGammaCiv(unittest.TestCase):
 
         # Unfortify unit
         unit.performAction()
-        self.assertEqual(unit.getDefense(), 3)
+        self.assertEqual(unit.getDefenseStrength(), 3)
         
         g.moveUnit((2,0),(2,1))
         self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
@@ -318,9 +313,104 @@ class testDeltaCiv(unittest.TestCase):
         self.assertEqual(g.getCityAt((4,5)).getOwner(), BLUE)
         self.assertEqual(g.getTileAt((4,8)).getTileType(), HILLS)
 
-        self.assertEqual(g.getCityAt((9,12)).getOwner(), RED)
+        self.assertEqual(g.getCityAt((8,12)).getOwner(), RED)
 
         self.assertEqual(g.getTileAt((15,15)).getTileType(), OCEANS)
+
+class testEpsilonCiv(unittest.TestCase):
+
+    def testDefenseWins(self):
+        g = HotCiv(EpsilonCivFactory)
         
+        g.placeTileAt((5,4), Tile(FORESTS))
+        g.placeUnitAt((5,5), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((5,4), NoActionUnit(BLUE, ARCHER))
+        g.placeUnitAt((4,4), NoActionUnit(BLUE, SETTLER))
+        g.placeUnitAt((4,3), NoActionUnit(BLUE, SETTLER))
+
+        g.moveUnit((5,5), (5,4), False)
+        self.assertTrue(isinstance(g.getUnitAt((5,5)), noUnit))
+        self.assertEqual(g.getUnitAt((5,4)).getOwner(), BLUE)
+
+    def testAttackerWins(self):
+        g = HotCiv(EpsilonCivFactory)
+
+        g.placeUnitAt((1,1), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((1,2), NoActionUnit(BLUE, ARCHER))
+
+        g.moveUnit((1,1),(1,2), False)
+        self.assertTrue(isinstance(g.getUnitAt((1,1)), noUnit))
+        self.assertEqual(g.getUnitAt((1,2)).getOwner(), RED)
+
+    def testThreeSuccessfulAttacksWins(self):
+        g = HotCiv(EpsilonCivFactory)
+
+        g.placeUnitAt((0,4), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((1,4), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((2,4), NoActionUnit(RED, LEGION))
+
+        g.placeUnitAt((0,5), NoActionUnit(BLUE, LEGION))
+        g.placeUnitAt((1,5), NoActionUnit(BLUE, LEGION))
+        g.placeUnitAt((2,5), NoActionUnit(BLUE, LEGION))
+
+        g.moveUnit((0,4), (0,5), False)
+        g.moveUnit((1,4), (1,5), False)
+        g.moveUnit((2,4), (2,5), False)
+
+        self.assertEqual(g.endOfRound(), RED)
+
+class testZetaCiv(unittest.TestCase):
+
+    def testWinBeforeSuddenDeath(self):
+        g = HotCiv(ZetaCivFactory)
+
+        g.placeUnitAt((4,2), NoActionUnit(RED, LEGION))
+        g.moveUnit((4,2),(4,1), False)
+
+        self.assertEqual(g.endOfRound(), RED)
+    
+    def testCantWinSuddenDeathWithPriorAttackWins(self):
+        g = HotCiv(ZetaCivFactory)
+        
+        g.placeUnitAt((0,4), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((1,4), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((2,4), NoActionUnit(RED, LEGION))
+
+        g.placeUnitAt((0,5), NoActionUnit(BLUE, LEGION))
+        g.placeUnitAt((1,5), NoActionUnit(BLUE, LEGION))
+        g.placeUnitAt((2,5), NoActionUnit(BLUE, LEGION))
+
+        g.moveUnit((0,4), (0,5), False)
+        g.moveUnit((1,4), (1,5), False)
+        g.moveUnit((2,4), (2,5), False)
+
+        
+        for i in range(20):
+            
+            g.endOfRound()
+            
+        self.assertEquals(g.endOfRound(), None)
+            
+    def testWinSuddenDeath(self):
+        g = HotCiv(ZetaCivFactory)
+        
+        for i in range(20):
+            
+            g.endOfRound()
+
+        g.placeUnitAt((0,4), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((1,4), NoActionUnit(RED, LEGION))
+        g.placeUnitAt((2,4), NoActionUnit(RED, LEGION))
+
+        g.placeUnitAt((0,5), NoActionUnit(BLUE, LEGION))
+        g.placeUnitAt((1,5), NoActionUnit(BLUE, LEGION))
+        g.placeUnitAt((2,5), NoActionUnit(BLUE, LEGION))
+
+        g.moveUnit((0,4), (0,5), False)
+        g.moveUnit((1,4), (1,5), False)
+        g.moveUnit((2,4), (2,5), False)
+
+        self.assertEquals(g.endOfRound(), RED)
+            
 if __name__ == "__main__":
     unittest.main()
