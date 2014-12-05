@@ -518,8 +518,6 @@ class noCity:
         return -1
     def nextRoundPrep(self):
         pass
-    def __changeProductionPoints(self, unit):
-        pass
     
 # ---
 class City:
@@ -777,8 +775,10 @@ def CompareAttackDefenseStrategy(attackingUnit, defendingUnit, battleground,
 
 # --------------------------------------------------------
 def SixPerTurnStrategy(city, adjacentTileList):
-    if city.getWorkforceFocus == PRODUCTION:
-        city.changeProductionPoints(6)
+    
+    if city.getWorkforceFocus() == PRODUCTION:
+        print("Hi Jarren!")
+        city.addProductionPoints(6)
 
 # --------------------------------------------------------
 def SmartWorkforceStrategy(city, adjacentItemList):
@@ -789,16 +789,16 @@ def SmartWorkforceStrategy(city, adjacentItemList):
 
     for item in adjacentItemList:
         if item == CITY and city.getWorkforceFocus() == PRODUCTION:
-            city.changeProductionPoints(1)
+            city.addProductionPoints(1)
 
         elif item == CITY and city.getWorkforceFocus() == FOOD:
-            city.changeFoodPoints(1)
+            city.addFoodPoints(1)
             
         elif city.getWorkforceFocus() == PRODUCTION:
-            city.changeProductionPoints(tile.getProduction())
+            city.addProductionPoints(tile.getProduction())
 
         else:
-            city.changeFoodPoints(tile.getFood())
+            city.addFoodPoints(tile.getFood())
             
 # --------------------------------------------------------
 class AlphaCivFactory:

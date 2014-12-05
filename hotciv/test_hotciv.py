@@ -411,6 +411,15 @@ class testZetaCiv(unittest.TestCase):
         g.moveUnit((2,4), (2,5), False)
 
         self.assertEquals(g.endOfRound(), RED)
+
+class testEtaCiv(unittest.TestCase):
+
+    def testProductionGatheringAroundCity(self):
+        pass
+    def testFoodGatheringAroundCity(self):
+        pass
+
+    
             
 if __name__ == "__main__":
     unittest.main()
