@@ -272,8 +272,6 @@ class testGammaCiv(unittest.TestCase):
         g.moveUnit((2,0),(2,1))
         self.assertEqual(g.getUnitAt((2,1)).getOwner(), RED)
 
-        
-
     def test_SettlerBuild(self):
         g = HotCiv(GammaCivFactory)
 
@@ -384,9 +382,7 @@ class testZetaCiv(unittest.TestCase):
         g.moveUnit((1,4), (1,5), False)
         g.moveUnit((2,4), (2,5), False)
 
-        
         for i in range(20):
-            
             g.endOfRound()
             
         self.assertEqual(g.endOfRound(), None)
@@ -395,7 +391,6 @@ class testZetaCiv(unittest.TestCase):
         g = HotCiv(ZetaCivFactory)
         
         for i in range(20):
-            
             g.endOfRound()
 
         g.placeUnitAt((0,4), NoActionUnit(RED, LEGION))
@@ -420,9 +415,7 @@ class testEtaCiv(unittest.TestCase):
         city.changeWorkforceFocus(PRODUCTION)
         
         g.endOfRound()
-
         self.assertEqual(city.getProductionPoints(), 3)
-        
                    
     def testFoodGatheringAroundCity(self):
         g = HotCiv(EtaCivFactory)
@@ -453,6 +446,7 @@ class testEtaCiv(unittest.TestCase):
         g.endOfRound()
 
         self.assertEqual(city.getSize(), 5)
+
             
 if __name__ == "__main__":
     unittest.main()

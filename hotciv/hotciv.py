@@ -290,7 +290,7 @@ class HotCiv:
                     return nPos
 
     def _isPlaceable(self, pos):
-        # Helper function that decides if a unit can be placed at 'pos'
+        # Decides if a unit can be placed at 'pos'
         row,col = pos
     
         if (WORLDSIZE <= row or -1 >= row
@@ -309,8 +309,7 @@ class HotCiv:
         return True
 
     def _incrementSuccessfulAttacks(self, team):
-        # Helper function that handles counting successful attacks for
-        # both players
+        # Handles counting successful attacks for both players
         
         if self._version == ZetaCivFactory and self._roundCount >= 20:
             self._successfulAttacks[team] += 1
@@ -322,6 +321,7 @@ class HotCiv:
         self._successfulAttacks[team] += 1
             
     def _itemAroundLocationGenerator(self, pos):
+        # Generates a list of tiles that surround the given pos, for use with cities
 
         if self.getCityAt(pos) == False:
             return False
@@ -372,11 +372,9 @@ class NoActionUnit:
         self._defense = UNITDEFENSE[unitType]
 
     def getOwner(self):
-        """Returns the Unit's owner"""
         return self._owner
     
     def getUnitType(self):
-        """Returns the Unit's type"""
         return self._type
     
     def getMoveCount(self):
@@ -409,11 +407,9 @@ class ActiveUnit:
         self._action = UNITACTIONS[unitType]
 
     def getOwner(self):
-        """Returns the Unit's owner"""
         return self._owner
     
     def getUnitType(self):
-        """Returns the Unit's type"""
         return self._type
     
     def getMoveCount(self):
@@ -427,10 +423,12 @@ class ActiveUnit:
         return self._defense
     
     def performAction(self):
+        """Perform the unit's action"""
 
         return self._action()
 
     def fortify(self):
+        """Archer fortification"""
 
         if self._defense == 6:
             self._defense = 3
@@ -446,12 +444,15 @@ class ActiveUnit:
         return 'fortify'
 
     def buildCity(self):
+        """Settler city building"""
         return 'buildCity'
 
     def noAction(self):
+        """Legion units perform no action"""
         return 'noAction'
 
     def isLocked(self):
+        """Returns whether or not the Archer is locked"""
         return self._isLocked
     
 # --------------------------------------------------------
@@ -792,8 +793,6 @@ def SixPerTurnStrategy(city, adjacentTileList):
 
 # --------------------------------------------------------
 def SmartWorkforceStrategy(city, adjacentItemList):
-# adjacent tile list generator feed city (keep in mind owner)
-
 
     if adjacentItemList == False:
         return
