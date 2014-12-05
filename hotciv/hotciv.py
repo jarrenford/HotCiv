@@ -182,6 +182,7 @@ class HotCiv:
             for col,city in enumerate(x):
                 adjacentItemList = self._itemAroundLocationGenerator((row,col))
                 self._workForceStrategy(city, adjacentItemList)
+                city.increaseSize()
                     
                 for i in range(city.buyNewUnit()):
                     pos = self._spiralGenerator((row,col))
@@ -332,10 +333,10 @@ class HotCiv:
         (row+1,col), (row+1,col-1), (row,col-1), (row-1,col-1)]
         
         for loc in posList:
-            if self._isPlaceable(loc) and self.getCityAt(loc) != False:
+            if self.getCityAt(loc) != False:
                 adjacentItemList.append(CITY)
-            elif self._isPlaceable(loc):
-                adjacentItemList.append(self.getTileAt(loc).getTileType())
+            else:
+                adjacentItemList.append(self.getTileAt(loc))
 
         return adjacentItemList
                
@@ -518,6 +519,8 @@ class noCity:
         return -1
     def nextRoundPrep(self):
         pass
+    def increaseSize(self):
+        pass
     
 # ---
 class City:
@@ -587,7 +590,7 @@ class City:
         # Subtracts production points based on which unit is being produced
         
         if isinstance(self._production, noUnit):
-            return -1
+            return False
         
         unitCost = UNITCOSTS[self._production]
         
@@ -596,13 +599,21 @@ class City:
             self._productionPoints -= unitCost*numOfUnits
             return numOfUnits
                     
-        return -1
+        return False
 
     def conquerCity(self):
         if self._owner == RED:
             self._owner = BLUE
         else:
             self._owner = RED
+
+    def increaseSize(self):
+        if self._size >= 9:
+            return
+        
+        if self._foodPoints > 5+(self._size*3):
+            self._size += 1
+            self._foodPoints = 0
             
 # --------------------------------------------------------
 def RedWinnerStrategy(year, cities, count, rounds):
@@ -777,15 +788,15 @@ def CompareAttackDefenseStrategy(attackingUnit, defendingUnit, battleground,
 def SixPerTurnStrategy(city, adjacentTileList):
     
     if city.getWorkforceFocus() == PRODUCTION:
-        print("Hi Jarren!")
         city.addProductionPoints(6)
 
 # --------------------------------------------------------
 def SmartWorkforceStrategy(city, adjacentItemList):
 # adjacent tile list generator feed city (keep in mind owner)
 
+
     if adjacentItemList == False:
-       return
+        return
 
     for item in adjacentItemList:
         if item == CITY and city.getWorkforceFocus() == PRODUCTION:
@@ -795,10 +806,10 @@ def SmartWorkforceStrategy(city, adjacentItemList):
             city.addFoodPoints(1)
             
         elif city.getWorkforceFocus() == PRODUCTION:
-            city.addProductionPoints(tile.getProduction())
+            city.addProductionPoints(item.getProduction())
 
         else:
-            city.addFoodPoints(tile.getFood())
+            city.addFoodPoints(item.getFood())
             
 # --------------------------------------------------------
 class AlphaCivFactory:
@@ -946,4 +957,24 @@ class EtaCivFactory:
 
     def createWorkforceStrategy(self):
         return SmartWorkforceStrategy
-    
+
+# --------------------------------------------------------    
+class SemiCivFactory:
+
+    def createWinner(self):
+        return ThreeSuccessfulAttacksWinsStrategy
+
+    def createAging(self):
+        return VaryingAgingStrategy
+
+    def createUnit(self):
+        return ActiveUnit
+
+    def createMap(self):
+        return MapFromFile
+
+    def createUnitAttackDefenseStrategy(self):
+        return CompareAttackDefenseStrategy
+
+    def createWorkforceStrategy(self):
+        return SmartWorkforceStrategy

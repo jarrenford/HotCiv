@@ -389,7 +389,7 @@ class testZetaCiv(unittest.TestCase):
             
             g.endOfRound()
             
-        self.assertEquals(g.endOfRound(), None)
+        self.assertEqual(g.endOfRound(), None)
             
     def testWinSuddenDeath(self):
         g = HotCiv(ZetaCivFactory)
@@ -410,16 +410,49 @@ class testZetaCiv(unittest.TestCase):
         g.moveUnit((1,4), (1,5), False)
         g.moveUnit((2,4), (2,5), False)
 
-        self.assertEquals(g.endOfRound(), RED)
+        self.assertEqual(g.endOfRound(), RED)
 
 class testEtaCiv(unittest.TestCase):
 
     def testProductionGatheringAroundCity(self):
-        pass
-    def testFoodGatheringAroundCity(self):
-        pass
+        g = HotCiv(EtaCivFactory)
+        city = g.getCityAt((1,1))
+        city.changeWorkforceFocus(PRODUCTION)
+        
+        g.endOfRound()
 
-    
+        self.assertEqual(city.getProductionPoints(), 3)
+        
+                   
+    def testFoodGatheringAroundCity(self):
+        g = HotCiv(EtaCivFactory)
+        g.placeCityAt((6,6), City(RED))
+        g.placeTileAt((7,5), Tile(MOUNTAINS))
+        g.placeTileAt((7,6), Tile(MOUNTAINS))
+        g.placeTileAt((7,7), Tile(MOUNTAINS))
+        g.placeTileAt((6,7), Tile(MOUNTAINS))
+        g.placeTileAt((5,7), Tile(MOUNTAINS))
+        g.placeTileAt((5,6), Tile(MOUNTAINS))
+        g.placeTileAt((5,5), Tile(MOUNTAINS))
+        city = g.getCityAt((6,6))
+        city.changeWorkforceFocus(FOOD)
+
+        g.endOfRound()
+
+        self.assertEqual(city.getFoodPoints(), 3)
+
+    def testCitySizeWithFood(self):
+        g = HotCiv(EtaCivFactory)
+        city = g.getCityAt((1,1))
+        city.changeWorkforceFocus(FOOD)
+
+        g.endOfRound()
+        g.endOfRound()
+        g.endOfRound()
+        g.endOfRound()
+        g.endOfRound()
+
+        self.assertEqual(city.getSize(), 5)
             
 if __name__ == "__main__":
     unittest.main()
