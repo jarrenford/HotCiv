@@ -1,0 +1,117 @@
+HotCit.py (Alpha, Beta, Gamma, Delta, Epsilon, Zeta)
+Jarren, Stetson, Luke
+11/14/14
+
+# ------------------------------------------------------
+Alpha Civ:
+
+Refactored to include a 2d map system that keeps track 
+of tiles, cities, and units at the locations on the map.
+
+Additionally, to handle  instances in our lists where no 
+units, and no cities were present, we developed noCity and 
+noUnit classes to exist in an actual unit's absence. The 
+noUnits share the same methods as units, and noCities share
+the same methods as cities only they handle operations in a
+much more passive manner that serve to pass the code as if 
+no object were there in the first place which is how we chose
+to handle those cases.
+
+We struggled with the spiral generator before our first 
+submission of the code. After the class discussion of how 
+to properly implement the code, we spent at least the first 
+week, (roughly 15-20 hours) of refactoring of our code to get
+the 2d list and spiral  generator implemented properly. 
+
+# ------------------------------------------------------
+Beta Civ:
+
+Beta Civ required us to create a whole new instance of the 
+game (BetaCiv) which we decided to implement via a Factory
+Pattern. This later became the basis for all of our versions
+of the game. We simpy stored the version as an initial
+variable in our Game init. Additionally, we were faced with 
+having to change how we handled the winner of the game. To 
+do this and have our original test code work with AlphaCiv's
+code as well, we decided to implement strategies to handle it.
+We used new strategies to handle the new aging strategy and
+the new way of determining the winner. These strategies 
+later became the basis for all of the variants between the
+game versions.
+
+Altogether, BetaCiv took us another 8 hours to implement in 
+three separate meetings.
+
+# -------------------------------------------------------
+Gamma Civ:
+
+Gamma Civ required refactoring of our unit class and required
+us to add actions to our unit classes. To do this, we modified 
+our game constants to include actions for our units. In addition,
+we had to write tests to make sure that the archer gained defence 
+equal to twice its original defence (6 after fortification) and 
+that it couldn't move. Also, we created tests to ensure that a 
+settler would be removed from the board when its action was 
+carried out. We created active and passive units to handle 
+the difference between AlphaCiv, BetaCiv, and GammaCiv units.
+Active units contained the abilities to use their actions, while
+passive units were used as the previous two versions' units 
+that couldn't activate abilities.
+
+GammaCiv took us another 8 hours to complete in two meetings.
+
+# -------------------------------------------------------
+Delta Civ:
+
+Delta Civ required a refactoring of our board. To do this, we
+decided to use sixteen characters in sixteen rows with spaces 
+being ignored to allow for ease of reading text input.
+This satisfies the requirement to allow for a user to easily 
+create their own gameboard. We implmented a DeltaCiv Factory 
+to interpret graphs when fed into the Game instance. This in
+combination with our own written text for page 454's map 
+allowed for proper implementation of DeltaCiv.
+
+DeltaCiv took three hours to complete.
+
+# -------------------------------------------------------
+Epsilon Civ:
+
+Epsilon Civ asked us to create yet another Factory to handle 
+determining the winner. We first struggled with testing how to properly
+test the randomness of the dice roll. To handle this, we created a 
+new parameter to keep track of a set dice roll and setting it to (True) in 
+our moveUnit() method. When moveUnit is passed Flase, the dice roll is set to 1's.
+When True, it follows the implementation of a random dice roll. This allowed
+us to test our new moveUnit() by taking out the randomness. 
+The next task was attacking because the attack strength and defense 
+strengths changed. We were required to create two different kinds of attacks:
+attacker always wins and the EpsilonCiv attack method. After implementing
+the two together and refactoring our code to follow this, Esilon Civ had been
+completed.
+
+EpsilonCiv took 3 hours to complete.
+
+# -------------------------------------------------------
+Zeta Civ:
+
+Zeta civ required a new Winner strategy. Fortunately, all this winner
+strategy required was a decision to pick one of the alread implemented
+winner strategies. We simply wrote the new winner strategy to decide
+which winner strategy would be called based on how many rounds had passed.
+Zeta Civ required a sudden death after 20 rounds had passed. The winner of 
+suddent death was that who had won 3 unit attacks after the 20th round. 
+We decided creating a helper function to implement successful unit attacks
+with a decision statement was the best way to accomplish this. The test code
+passed, and we had finished implementing Zeta Civ.
+
+ZetaCiv took 1 hour to complete.
+
+# -------------------------------------------------------
+Eta Civ:
+
+Unfortunately, we were not able to get to Eta Civ as we were
+out of time and honestly worn out from the week. We examined 
+the scope at the beginning of the week and decided that every 
+other version was an obtainable goal however, and we were
+content that we managed to successfully get our tests working. 
