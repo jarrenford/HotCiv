@@ -54,11 +54,11 @@ def getColorForPlayer(p):
         return java.awt.Color.RED
     elif p == gc.BLUE:
         return java.awt.Color.CYAN
-    elif p == gc.YELLOW:
-        return java.awt.Color.YELLOW
-    elif p == gc.GREEN:
-        return java.awt.Color.GREEN
-    return java.awt.Color.WHITE
+##    elif p == gc.YELLOW:
+##        return java.awt.Color.YELLOW
+##    elif p == gc.GREEN:
+##        return java.awt.Color.GREEN
+##    return java.awt.Color.WHITE
 
 def getPositionFromXY(x,y):
     return ((y - MAP_OFFSET_Y) / TILESIZE, (x - MAP_OFFSET_X) / TILESIZE) 

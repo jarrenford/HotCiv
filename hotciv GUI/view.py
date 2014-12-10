@@ -8,31 +8,83 @@ from java.awt import *
 import gfxconstants as GfxConstants
 import gameconstants as GameConstants
 
+
 class GameObserver:
     def __init__(self, game, editor):
         self.game = game
         self.editor = editor
         game.addObserver(self)
         
-        self.variances = {"YEAR":self.updateYear}
+        self.variances = {"YEAR":self.updateYear,
+                          "WORKFORCE":self.updateWorkforce,
+                          "PRODUCTION":self.updateProduction,
+                          "PLAYERTURN":self.updatePlayerInTurn,
+                          "UNITMOVE":self.updateUnitPlacement}
+        
         editor.drawing().add(yearText)
-        yearText.draw(editor)
-                          
-    def notify(notification):
-        self.variance[notification]()
+
+        # Define graphics objects
+        self.workforceLoc = Point(GfxConstants.WORKFORCEFOCUS_X, GfxConstants.WORKFORCEFOCUS_Y)
+        self.productionLoc = Point(GfxConstants.CITY_PRODUCTION_X, GfxConstants.CITY_PRODUCTION_Y)
+        self.playerInTurnLoc = Point(GfxConstants.TURN_SHIELD_X, GfxConstants.TURN_SHIELD_Y)
+        
+        self.workforcePic = ImageFigure("hammer", self.workforceLoc)
+        self.productionPic = ImageFigure("legion", self.productionLoc)
+        self.playerInTurnPic = ImageFigure("redshield", self.playerInTurnLoc)
+        
+        editor.drawing().add(self.workforcePic)
+        editor.drawing().add(self.productionPic)
+        editor.drawing().add(self.playerInTurnPic)
+        
+    def notify(self, notification, *args):
+        self.variances[notification](*args)
 
     def getValue(self, key):
         return self.variances[key]
 
     def updateYear(self):
-        yr = game.getYear()
+        yr = self.game.getAge()
 
         if yr < 0:
             yearText.setText(str(yr)[1:] + " BC")
         else:
             yearText.setText(str(yr) + " AD")
 
-        yearText.draw(self.editor)
+    def updateWorkforce(self, pos):
+        focus = self.game.getCityAt(pos).getWorkforceFocus()
+        
+        if  focus == "production":
+            self.workforcePic.set("hammer", self.workforceLoc)
+        elif focus == "food":
+            self.workforcePic.set("apple", self.workforceLoc)
+
+    def updateProduction(self, pos):
+        unit = self.game.getCityAt(pos).getProduction()
+        
+        if unit == "legion":
+            self.productionPic.set("legion", self.productionLoc)
+        elif unit == "settler":
+            self.productionPic.set("settler", self.productionLoc)
+        elif unit == "archer":
+            self.productionPic.set("archer", self.productionLoc)
+
+    def updatePlayerInTurn(self):
+        team = self.game.getPlayerInTurn() + "shield"
+
+        self.playerInTurnPic.set(team, self.playerInTurnLoc)
+
+    def updateUnitPlacement(self, posFrom, posTo, screenPosFrom, screenPosTo):
+        tile = self.game.getTileAt(posFrom).getTileType()
+        unit = self.game.getUnitAt(posFrom).getUnitType()
+
+        toX, toY = screenPosTo
+        fromX, fromY = screenPosFrom
+        
+        image = ImageFigure(unit, Point(toX, toY))
+        editor.drawing().add(image)
+
+        tile_image = ImageFigure(tile, Point(fromX, fromY))
+        editor.drawing().add(tile_image)
             
 class MapView(StdViewWithBackground):
     
@@ -49,15 +101,31 @@ class MapView(StdViewWithBackground):
                 p = (r,c)
                 xpos = GfxConstants.getXFromColumn(c)
                 ypos = GfxConstants.getYFromRow(r)
+                
                 t = self.game.getTileAt(p)
-                image_name = t.getTileType()
-                if image_name == GameConstants.OCEANS:
-                    image_name = image_name + getCoastlineCoding(self.game, p)
+                tile_name = t.getTileType()
+                
+                u = self.game.getUnitAt(p)
+                unit_name = u.getUnitType()
+
+                c = self.game.getCityAt(p)
+                
+                if tile_name == GameConstants.OCEANS:
+                    tile_name = tile_name + getCoastlineCoding(self.game, p)
                     pass
-                img = im.getImage(image_name)
-                g.drawImage(img, xpos, ypos, None)
+                
+                tile = im.getImage(tile_name)
+                g.drawImage(tile, xpos, ypos, None)
 
+                if unit_name != None:
+                    unit = im.getImage(unit_name)
+                    g.drawImage(unit, xpos, ypos, None)
 
+                if c != False:
+                    city = CityFigure(c, Point(xpos,ypos))
+                    city.draw(g)
+                    
+                    
 class CityFigure(ImageFigure):
 
   def __init__(self, c, p):
@@ -67,7 +135,12 @@ class CityFigure(ImageFigure):
       
   def draw(self, g):
     #draw background color
-    g.setColor(GfxConstants.getColorForPlayer(self.city.getOwner()))
+    color = self.city.getOwner()
+    if color == "blue":
+        g.setColor(Color.blue)
+    else:
+        g.setColor(Color.red)
+        
     g.fillRect( self.position.x+1, self.position.y+1, 
                 GfxConstants.TILESIZE-2, 
                 GfxConstants.TILESIZE-2 )
@@ -84,7 +157,7 @@ class CityFigure(ImageFigure):
                  self.position.x + GfxConstants.CITY_SIZE_OFFSET_X,
                  self.position.y + GfxConstants.CITY_SIZE_OFFSET_Y);
 
-    
+
 def getCoastlineCoding(game, center):
     row,col = center
     coding = ['0','0','0','0']
@@ -146,6 +219,5 @@ class TextFigure(AbstractFigure):
         return Dimension(fWidth, fHeight)
 
 
-
+# More graphics objects
 yearText = TextFigure("4000 BC", Point(GfxConstants.AGE_TEXT_X, GfxConstants.AGE_TEXT_Y) )
-

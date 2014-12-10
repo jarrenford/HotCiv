@@ -31,14 +31,13 @@ class HotCiv:
 
         # GUI stuff
         self.observers = []
-
+        
     def addObserver(self, observer):
         self.observers.append(observer)
-        print self.observers
 
-    def notifyObservers(self, notification):
+    def notifyObservers(self, notification, *args):
         for observer in self.observers:
-            observer.notify(notification)
+            observer.notify(notification, *args)
 
     def getTileAt(self, pos):
         """Return the tile object at 'pos' (row,col) on the board"""
@@ -71,7 +70,7 @@ class HotCiv:
         
         if isinstance(city, noCity):
             return False
-        
+
         return city
 
     def getPlayerInTurn(self):
@@ -88,7 +87,7 @@ class HotCiv:
         return self._winner(self._age, self._cityBoard,
                             self._successfulAttacks, self._roundCount)
     
-    def moveUnit(self, posFrom, posTo, random=True):
+    def moveUnit(self, posFrom, posTo, random=True, screenPosFrom=None, screenPosTo=None):
         """Moves a unit from 'posFrom' (row,col) to 'posTo' (row,col)"""
         unitFrom = self.getUnitAt(posFrom)
         unitTo = self.getUnitAt(posTo)
@@ -136,6 +135,8 @@ class HotCiv:
         self.placeUnitAt(posTo, unitFrom)   
         self.placeUnitAt(posFrom, noUnit())
         self._hasMoved.append(posTo)
+
+        self.notifyObservers("UNITMOVE", posFrom, posTo, screenPosFrom, screenPosTo)
         
     def getAdjacentUnitCount(self, pos):
         """Gets the number of Units that are touching, but not on, 'pos'"""
@@ -167,7 +168,7 @@ class HotCiv:
         
         # Performs building for settlers
         if response == 'buildCity':
-            self.placeCityAt(pos, City(unit.getOwner()))
+            self.placeCityAt(pos, City(self.observable, unit.getOwner()))
             self.placeUnitAt(pos, noUnit())
             
     def endOfTurn(self):
@@ -180,6 +181,10 @@ class HotCiv:
             self._turn = BLUE
 
         self._hasMoved = []
+        self.notifyObservers("PLAYERTURN")
+
+        if self._turn == BLUE:
+            self.endOfRound()
 
     def endOfRound(self):
         """Handles end-of-round events after each round"""
@@ -201,17 +206,19 @@ class HotCiv:
                     unit = self._unitCreateStrategy(city.getOwner(), city.getProduction())
                     self.placeUnitAt(pos, unit)
 
-        self.notifyObservers({"YEAR":self._age})
+        self.notifyObservers("YEAR")
 
     def changeCityWorkforceAt(self, pos, balance):
         """Changes the workforce of city at 'pos' to 'balance'"""
         city = self.getCityAt(pos)
         city.changeWorkforce(balance)
+        self.notifyObservers("WORKFORCE", pos)
     
     def changeCityProductionAt(self, pos, unit):
         """Changes the city at 'pos' (row,col)'s unit production to 'unit'"""
         city = self.getCityAt(pos)
         city.changeProduction(unit)
+        self.notifyObservers("PRODUCTION", pos)
 
     ### Placement methods
     def placeTileAt(self, pos, tile):
@@ -546,7 +553,7 @@ class City:
         
         self._size = 1
         self._owner = owner
-        self._workforceFocus = None
+        self._workforceFocus = PRODUCTION
         self._foodPoints = 0
         self._production = noUnit()
         self._productionPoints = 0
@@ -587,7 +594,7 @@ class City:
         on PRODUCTION"""
         
         if unitType in [ARCHER, LEGION, SETTLER]:
-            self._production = unitType 
+            self._production = unitType
         else:
             return False
 
@@ -744,6 +751,11 @@ def MapFromFile(unitCreateStrategy):
     tileBoard = [[] for i in range(WORLDSIZE)]
     cityBoard = [[noCity() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
     unitBoard = [[noUnit() for col in range(WORLDSIZE)] for row in range(WORLDSIZE)]
+
+    # TEST  TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST
+    unitBoard[5][3] = ActiveUnit(RED, LEGION)
+    unitBoard[5][6] = ActiveUnit(BLUE, ARCHER)
+    unitBoard[6][4] = ActiveUnit(BLUE, SETTLER)
     
     spaces = {'p':Tile(PLAINS), 'o':Tile(OCEAN), 'h':Tile(HILLS), 'm':Tile(MOUNTAIN),
               'f':Tile(FOREST), 'r':City(RED), 'b':City(BLUE)}
